@@ -1,0 +1,94 @@
+.container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-secondary);
+  padding: 2rem;
+}
+
+.authCard {
+  width: 100%;
+  max-width: 440px;
+  background-color: var(--bg-primary);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-light);
+  overflow: hidden;
+}
+
+.header {
+  padding: 2.5rem 2.5rem 1rem;
+  text-align: center;
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.form {
+  padding: 0 2.5rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.forgotPassword {
+  font-size: 0.85rem;
+  color: var(--brand-default);
+  text-align: right;
+  margin-top: -0.5rem;
+}
+.forgotPassword:hover {
+  text-decoration: underline;
+}
+
+.submitBtn {
+  margin-top: 0.5rem;
+}
+
+.footer {
+  text-align: center;
+  margin-top: 1.5rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.link {
+  color: var(--brand-default);
+  font-weight: 500;
+  margin-left: 0.25rem;
+}
+.link:hover {
+  text-decoration: underline;
+}
+
+/* Decorator for social login separation */
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 1.5rem 0;
+  color: var(--text-tertiary);
+  font-size: 0.85rem;
+}
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--border-light);
+}
+.divider:not(:empty)::before {
+  margin-right: 1rem;
+}
+.divider:not(:empty)::after {
+  margin-left: 1rem;
+}

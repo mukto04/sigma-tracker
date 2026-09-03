@@ -2,23 +2,83 @@
   "name": "tracker",
   "version": "0.1.0",
   "private": true,
+  "main": "main.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "electron:dev": "concurrently -k \"cross-env BROWSER=none npm run dev\" \"wait-on http://localhost:3000 && cross-env NODE_ENV=development electron .\"",
+    "electron:build": "npm run build && electron-builder",
+    "electron:build:all": "npm run build && electron-builder -mwl",
+    "electron:build:mac": "npm run build && electron-builder --mac",
+    "electron:build:linux": "npm run build && electron-builder --linux",
+    "tauri:build": "cargo build --release --manifest-path src-tauri/Cargo.toml && powershell -Command \"Copy-Item -Path src-tauri/target/release/app.exe -Destination public/SigmaTracker.exe\"",
+    "postinstall": "prisma skills sync || exit 0"
   },
   "dependencies": {
+    "@auth/prisma-adapter": "^2.11.3",
+    "@prisma/client": "^5.22.0",
+    "@types/nodemailer": "^8.0.1",
+    "bcryptjs": "^3.0.3",
     "next": "16.3.4",
+    "next-auth": "^4.24.15",
+    "nodemailer": "^7.0.13",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "stripe": "^22.6.1",
+    "uiohook-napi": "^1.5.5"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^10.0.5",
+    "cross-env": "^10.1.0",
+    "electron": "^44.1.1",
+    "electron-builder": "^26.15.3",
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
-    "typescript": "^5"
+    "prisma": "^5.22.0",
+    "typescript": "^5",
+    "wait-on": "^9.1.0"
+  },
+  "build": {
+    "appId": "com.sigmatracker.app",
+    "productName": "SigmaTracker",
+    "win": {
+      "target": "nsis",
+      "icon": "public/app-icon.png"
+    },
+    "mac": {
+      "target": ["dmg", "zip"],
+      "icon": "public/app-icon.png",
+      "category": "public.app-category.business"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "icon": "public/app-icon.png",
+      "category": "Office"
+    },
+    "compression": "maximum",
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "differentialPackage": false
+    },
+    "asarUnpack": [
+      "node_modules/uiohook-napi/build/Release/*.node",
+      "node_modules/uiohook-napi/prebuilds/**/*.node"
+    ],
+    "files": [
+      "main.js",
+      "preload.js",
+      "package.json",
+      "public/logo.png",
+      "public/app-icon.png",
+      "node_modules/uiohook-napi/**/*",
+      "node_modules/node-gyp-build/**/*"
+    ]
   }
 }

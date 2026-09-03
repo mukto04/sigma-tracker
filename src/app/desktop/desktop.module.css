@@ -1,0 +1,284 @@
+.appContainer {
+  height: 100vh;
+  width: 100vw;
+  background-color: #0d0d0d;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.dragRegion {
+  position: relative;
+  height: 60px;
+  background-color: #111;
+  -webkit-app-region: drag;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-bottom: 1px solid #222;
+  user-select: none;
+}
+
+.headerLeft {
+  position: absolute;
+  left: 1.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.headerRight {
+  position: absolute;
+  right: calc(1.5rem + 130px); /* Space for native OS window controls */
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.timerCenter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.timeValue {
+  font-size: 2.2rem;
+  font-weight: 500;
+  color: #3b82f6; /* Blue timer */
+  font-variant-numeric: tabular-nums;
+  -webkit-app-region: no-drag;
+}
+
+@media (max-width: 600px) {
+  .timeValue {
+    font-size: 1.5rem;
+  }
+  .dragRegion {
+    padding: 0 0.5rem;
+  }
+  .headerRight {
+    gap: 0.5rem;
+  }
+  .controlBtn {
+    width: 28px;
+    height: 28px;
+  }
+  .timerCenter {
+    gap: 5px;
+  }
+}
+
+.timerControls {
+  display: flex;
+  gap: 6px;
+  -webkit-app-region: no-drag;
+}
+
+.controlBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #1e3a8a;
+  color: #60a5fa;
+  border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.controlBtn:hover {
+  background-color: #3b82f6;
+  color: #fff;
+}
+.controlBtnStop {
+  background-color: #1e3a8a; /* Or red if tracking */
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0d0d0d;
+}
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Calendar Strip */
+.calendarStrip {
+  display: flex;
+  background-color: #1a1a1a;
+  border-bottom: 1px solid #222;
+  padding: 10px 5px;
+  gap: 5px;
+  overflow-x: auto;
+  cursor: grab;
+}
+.calendarStrip:active {
+  cursor: grabbing;
+}
+.calendarStrip::-webkit-scrollbar {
+  display: none;
+}
+.dayCard {
+  min-width: 120px;
+  background-color: #262626;
+  padding: 8px 12px;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 50px;
+}
+.dayCardActive {
+  background-color: #3f6212; /* Greenish active day */
+  border: 1px solid #84cc16;
+}
+.dayName {
+  font-size: 0.75rem;
+  color: #a3a3a3;
+}
+.dayTime {
+  font-size: 0.85rem;
+  color: #60a5fa;
+  align-self: flex-end;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  border-bottom: 1px solid #333;
+  padding: 10px 0;
+  background-color: #0d0d0d;
+}
+.tabItem {
+  color: #737373;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding-bottom: 4px;
+}
+.tabItemActive {
+  color: #3b82f6;
+  border-bottom: 2px solid #3b82f6;
+}
+
+/* Centered Main Content Area */
+.contentWrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow-y: hidden;
+  min-height: 0;
+}
+
+.content {
+  width: 100%;
+  max-width: 100%;
+  background-color: transparent;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.projectInfo {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #a3a3a3;
+  background-color: #262626;
+  padding: 0.6rem 1.2rem;
+  border-radius: 9999px;
+  cursor: pointer;
+  border: 1px solid #333;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 auto;
+}
+.projectInfo:hover {
+  background-color: #333;
+  color: #fff;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.circleBtn {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.circleBtn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 15px 30px -5px rgba(37, 99, 235, 0.5);
+}
+.circleBtn:active {
+  transform: scale(0.95);
+}
+.circleBtnStop {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  box-shadow: 0 10px 25px -5px rgba(239, 68, 68, 0.4);
+}
+.circleBtnStop:hover {
+  box-shadow: 0 15px 30px -5px rgba(239, 68, 68, 0.5);
+}
+
+.statsRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.statBoxWidget {
+  background-color: #262626;
+  padding: 1rem;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid #333;
+}
+.statLabelWidget {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #a3a3a3;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.statValueWidget {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+}

@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+
+
+model Company {
+  id                 String    @id @default(cuid())
+  name               String
+  logoUrl            String?
+  plan               String    @default("FREE")
+  paidSeats          Int       @default(0)
+  idleTimeoutMinutes Int       @default(10)
+  subscriptionStatus String    @default("Active")
+  purchaseDate       DateTime?
+  renewalDate        DateTime?
+  endDate            DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  users    User[]
+  projects Project[]
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  avatarUrl String?
+  password  String
+  role      String   @default("EMPLOYEE")
+  companyId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company     Company       @relation(fields: [companyId], references: [id])
+  timeEntries TimeEntry[]
+  screenshots Screenshot[]
+  activities  ActivityLog[]
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  companyId   String
+  createdAt   DateTime @default(now())
+
+  company     Company     @relation(fields: [companyId], references: [id])
+  timeEntries TimeEntry[]
+}
+
+model TimeEntry {
+  id        String    @id @default(cuid())
+  startTime DateTime  @default(now())
+  endTime   DateTime?
+  duration  Int?      // Duration in seconds
+  userId    String
+  projectId String?
+  createdAt DateTime  @default(now())
+
+  user    User     @relation(fields: [userId], references: [id])
+  project Project? @relation(fields: [projectId], references: [id])
+}
+
+model Screenshot {
+  id        String   @id @default(cuid())
+  imageUrl  String
+  userId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model ActivityLog {
+  id               String   @id @default(cuid())
+  userId           String
+  productivityScore Int      // e.g. 0-100 percentage
+  activeApps       String   // JSON string or comma-separated apps
+  createdAt        DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Setting {
+  key   String @id
+  value String
+}
