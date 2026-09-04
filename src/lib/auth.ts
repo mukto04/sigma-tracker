@@ -1,9 +1,8 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
-const SECRET_KEY = new TextEncoder().encode(
-  process.env.NEXTAUTH_SECRET || 'SigmaSecureTrackerSecret123!'
-);
+// Hardcoded secret for edge consistency (Cloudflare middleware env var bug workaround)
+const SECRET_KEY = new TextEncoder().encode('SigmaSecureTrackerSecret123!_HARDCODED');
 
 export const SESSION_COOKIE = 'sigma-session';
 
