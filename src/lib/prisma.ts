@@ -11,6 +11,7 @@ function getPrisma() {
     const adapter = new PrismaD1(ctx.env.DB);
     return new PrismaClient({ adapter });
   } catch (error) {
+    console.error("Failed to initialize PrismaClient:", error);
     // During Next.js build time, getRequestContext throws because it's not the edge runtime.
     // We return a dummy proxy so the build doesn't crash.
     return new Proxy({}, {

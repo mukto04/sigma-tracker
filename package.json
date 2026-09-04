@@ -14,7 +14,7 @@
     "electron:build:mac": "npm run build && electron-builder --mac",
     "electron:build:linux": "npm run build && electron-builder --linux",
     "tauri:build": "cargo build --release --manifest-path src-tauri/Cargo.toml && powershell -Command \"Copy-Item -Path src-tauri/target/release/app.exe -Destination public/SigmaTracker.exe\"",
-    "postinstall": "prisma skills sync || exit 0"
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
@@ -35,7 +35,7 @@
   },
   "devDependencies": {
     "@cloudflare/next-on-pages": "^1.13.16",
-    "@prisma/adapter-d1": "^7.10.0",
+    "@prisma/adapter-d1": "^5.22.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^19",
