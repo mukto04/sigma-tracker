@@ -22,13 +22,18 @@
     "@prisma/client": "^5.22.0",
     "@types/nodemailer": "^8.0.1",
     "bcryptjs": "^3.0.3",
+    "crypto-browserify": "^3.12.1",
     "next": "^14.2.15",
     "next-auth": "^4.24.15",
     "nodemailer": "^7.0.13",
+    "os-browserify": "^0.3.0",
+    "path-browserify": "^1.0.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "stream-browserify": "^3.0.0",
     "stripe": "^22.6.1",
-    "uiohook-napi": "^1.5.5"
+    "uiohook-napi": "^1.5.5",
+    "util": "^0.12.5"
   },
   "devDependencies": {
     "@cloudflare/next-on-pages": "^1.13.16",
