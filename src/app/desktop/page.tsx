@@ -651,17 +651,23 @@ export default function DesktopTracker() {
                 Go to dashboard
               </a>
               
-              <a href="/api/auth/signout" style={{
-                padding: '10px 14px', color: '#ef4444', fontSize: '13px', textDecoration: 'none',
-                transition: 'background-color 0.15s', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: '8px'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#262626'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              <button
+                onClick={async () => {
+                  await fetch('/api/auth/logout', { method: 'POST' });
+                  window.location.href = '/login';
+                }}
+                style={{
+                  padding: '10px 14px', color: '#ef4444', fontSize: '13px', textDecoration: 'none',
+                  background: 'transparent', border: 'none', width: '100%',
+                  transition: 'background-color 0.15s', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '8px'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#262626'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
                 Log out
-              </a>
+              </button>
             </div>
           )}
         </div>

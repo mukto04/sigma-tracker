@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import { ExportCsvButton } from './ExportCsvButton';
 
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
+
 function formatDuration(seconds: number) {
   if (!seconds || seconds <= 0) return '0h 00m';
   const h = Math.floor(seconds / 3600);

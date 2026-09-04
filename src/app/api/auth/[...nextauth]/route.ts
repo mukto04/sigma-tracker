@@ -60,19 +60,23 @@ export async function POST(req: NextRequest) {
     return response;
   }
 
+  if (pathname.endsWith('/logout') || pathname.endsWith('/signout')) {
+    const response = NextResponse.json({ ok: true });
+    response.cookies.set(SESSION_COOKIE, '', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      maxAge: 0,
+      path: '/',
+    });
+    return response;
+  }
+
   return NextResponse.json({ error: 'Not found' }, { status: 404 });
 }
 
 // GET /api/auth/session - Get session
 export async function GET(req: NextRequest) {
-  const { pathname } = req.nextUrl;
-  
-  if (pathname.includes('signout') || pathname.includes('logout')) {
-    const response = NextResponse.json({ ok: true });
-    response.cookies.delete(SESSION_COOKIE);
-    return response;
-  }
-
   // Session check
   const token = req.cookies.get(SESSION_COOKIE)?.value;
   if (!token) {

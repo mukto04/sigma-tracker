@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import { UnifiedScreenshotStream } from './UnifiedScreenshotStream';
 
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
+
 export default async function CompanyAdminScreenshotsPage({
   searchParams,
 }: {

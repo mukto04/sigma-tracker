@@ -2,6 +2,9 @@ import React from 'react';
 import { prisma } from '@/lib/prisma';
 import { AdminSidebar } from './AdminSidebar';
 
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
+
 export default async function CompanyAdminLayout({
   children,
 }: {

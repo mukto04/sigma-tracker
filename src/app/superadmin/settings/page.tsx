@@ -2,6 +2,9 @@ import React from 'react'; // HMR trigger
 import { getSettings } from './actions';
 import { BrandingForm, SecurityForm, StripeForm, EmailGatewayForm } from './SettingsForms';
 
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
+
 const styles = {
   container: {
     backgroundColor: '#0a0f1c',

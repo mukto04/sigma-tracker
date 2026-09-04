@@ -3,6 +3,9 @@ import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import CompanyActionButtons from '../CompanyActionButtons';
 
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
+
 const styles = {
   container: {
     backgroundColor: '#0a0f1c',

@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import DateFilter from './DateFilter';
 
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
+
 function formatDuration(seconds: number) {
   if (!seconds || seconds <= 0) return '0s';
   if (seconds < 60) return `${seconds}s`;

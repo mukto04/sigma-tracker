@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma';
 import { AddEmployeeForm } from '../Forms';
 import ResetPasswordButton from './ResetPasswordButton';
 
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
+
 export default async function EmployeesPage() {
   const company = await prisma.company.findFirst({
     where: { name: { not: 'Superadmin HQ' } },

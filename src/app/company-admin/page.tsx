@@ -2,6 +2,9 @@ import React from 'react';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
+
 function formatDuration(seconds: number) {
   if (seconds <= 0) return '0m';
   const h = Math.floor(seconds / 3600);

@@ -24,9 +24,16 @@ export function DashboardNav() {
       <Link href="/dashboard/settings" className={`${styles.navItem} ${pathname === '/dashboard/settings' ? styles.active : ''}`}>
         Settings
       </Link>
-      <Link href="/api/auth/signout" className={styles.navItem} style={{ color: '#ef4444', marginTop: 'auto', fontWeight: 'bold' }}>
+      <button 
+        onClick={async () => {
+          await fetch('/api/auth/logout', { method: 'POST' });
+          window.location.href = '/login';
+        }}
+        className={styles.navItem} 
+        style={{ color: '#ef4444', marginTop: 'auto', fontWeight: 'bold', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%' }}
+      >
         Log out
-      </Link>
+      </button>
     </nav>
   );
 }
