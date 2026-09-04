@@ -1,67 +1,50 @@
-import NextAuth, { NextAuthOptions } from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
-import { prisma } from "@/lib/prisma";
-import bcrypt from "bcryptjs";
+import { SignJWT, jwtVerify } from 'jose';
+import { cookies } from 'next/headers';
 
-export const authOptions: NextAuthOptions = {
-  providers: [
-    CredentialsProvider({
-      name: "Credentials",
-      credentials: {
-        email: { label: "Email", type: "text" },
-        password: { label: "Password", type: "password" }
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
-        
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email }
-        });
+const SECRET_KEY = new TextEncoder().encode(
+  process.env.NEXTAUTH_SECRET || 'SigmaSecureTrackerSecret123!'
+);
 
-        if (!user) return null;
+export const SESSION_COOKIE = 'sigma-session';
 
-        const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
-        
-        if (!isPasswordValid) {
-          // For demo purposes, if passwords don't match, we still return the user if they type 'password'
-          // In production, this should just return null
-          if (credentials.password === 'password123') return user;
-          return null;
-        }
+export interface SessionUser {
+  id: string;
+  email: string;
+  name?: string | null;
+  role: string;
+}
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-        };
-      }
-    })
-  ],
-  session: {
-    strategy: "jwt",
-  },
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.role = (user as any).role;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (token) {
-        session.user = {
-          id: token.id as string,
-          role: token.role as string,
-          name: session.user?.name,
-          email: session.user?.email,
-        } as any;
-      }
-      return session;
-    }
-  },
-  pages: {
-    signIn: '/login',
+export interface Session {
+  user: SessionUser;
+}
+
+export async function createSessionToken(user: SessionUser): Promise<string> {
+  return await new SignJWT({ ...user })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('30d')
+    .sign(SECRET_KEY);
+}
+
+export async function verifySessionToken(token: string): Promise<SessionUser | null> {
+  try {
+    const { payload } = await jwtVerify(token, SECRET_KEY);
+    return {
+      id: payload.id as string,
+      email: payload.email as string,
+      name: payload.name as string | null,
+      role: payload.role as string,
+    };
+  } catch {
+    return null;
   }
-};
+}
+
+export async function getSession(): Promise<Session | null> {
+  const cookieStore = cookies();
+  const token = cookieStore.get(SESSION_COOKIE)?.value;
+  if (!token) return null;
+  const user = await verifySessionToken(token);
+  if (!user) return null;
+  return { user };
+}

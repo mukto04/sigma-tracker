@@ -1,14 +1,15 @@
+import { getSession } from '@/lib/auth';
 import React from 'react';
 import { prisma } from '@/lib/prisma';
 import { IdleTimeoutForm } from '../IdleTimeoutForm';
 import { AddProjectForm } from '../Forms';
 
+export const runtime = 'edge';
+
 import { ImageUploadForm, ChangePasswordForm } from '@/components/SettingsForms';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 
 export default async function SettingsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   
   const company = await prisma.company.findFirst({
     where: { name: { not: 'Superadmin HQ' } },

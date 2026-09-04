@@ -1,26 +1,56 @@
-import nodemailer from 'nodemailer';
 import { prisma } from '@/lib/prisma';
 
-async function getTransporter() {
-  // Read SMTP settings saved by Superadmin from the Setting table
+// Edge-compatible email sender using fetch() instead of nodemailer
+// Uses SMTP2GO HTTP API which works in Cloudflare Edge runtime
+async function sendEmailViaApi({
+  to,
+  from,
+  fromName,
+  subject,
+  html,
+}: {
+  to: string;
+  from: string;
+  fromName: string;
+  subject: string;
+  html: string;
+}) {
+  const apiKey = process.env.SMTP2GO_API_KEY || process.env.EMAIL_API_KEY || '';
+
+  // Fallback: if no API key, log and skip (email is non-critical for app function)
+  if (!apiKey) {
+    console.warn('No email API key set (SMTP2GO_API_KEY). Skipping email send.');
+    return;
+  }
+
+  const response = await fetch('https://api.smtp2go.com/v3/email/send', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      api_key: apiKey,
+      to: [to],
+      sender: `${fromName} <${from}>`,
+      subject,
+      html_body: html,
+    }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Email API error: ${text}`);
+  }
+}
+
+async function getEmailConfig() {
   const settings = await prisma.setting.findMany({
-    where: { key: { in: ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass'] } }
+    where: { key: { in: ['smtp_user', 'smtp_from_name'] } }
   });
-
   const map: Record<string, string> = {};
-  settings.forEach(s => { map[s.key] = s.value; });
-
-  const host = map['smtp_host'] || process.env.SMTP_HOST || 'smtp.gmail.com';
-  const port = Number(map['smtp_port'] || process.env.SMTP_PORT || 587);
-  const user = map['smtp_user'] || process.env.SMTP_USER || '';
-  const pass = map['smtp_pass'] || process.env.SMTP_PASS || '';
-
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass },
-  });
+  settings.forEach((s: { key: string; value: string }) => { map[s.key] = s.value; });
+  return {
+    from: map['smtp_user'] || process.env.SMTP_USER || 'noreply@sigmatrack.app',
+    fromName: map['smtp_from_name'] || 'SigmaTrack',
+  };
 }
 
 export async function sendWelcomeEmail({
@@ -37,12 +67,11 @@ export async function sendWelcomeEmail({
   password: string;
 }) {
   try {
-    const transporter = await getTransporter();
-    const smtpUser = (await prisma.setting.findUnique({ where: { key: 'smtp_user' } }))?.value || process.env.SMTP_USER || '';
-    const fromName = (await prisma.setting.findUnique({ where: { key: 'smtp_from_name' } }))?.value || companyName;
-    await transporter.sendMail({
-      from: `"${fromName}" <${smtpUser}>`,
+    const { from, fromName } = await getEmailConfig();
+    await sendEmailViaApi({
       to,
+      from,
+      fromName,
       subject: `Welcome to ${companyName} — Your Login Details`,
       html: `
         <div style="font-family: 'Inter', Arial, sans-serif; max-width: 520px; margin: 0 auto; background: #f8fafc; padding: 32px 16px;">
@@ -56,7 +85,6 @@ export async function sendWelcomeEmail({
             <p style="margin: 0 0 24px; font-size: 15px; color: #64748b; text-align: center;">
               Hi <strong>${employeeName}</strong>, your account has been created.
             </p>
-
             <div style="background: #f1f5f9; border-radius: 10px; padding: 20px; margin-bottom: 24px;">
               <div style="margin-bottom: 12px;">
                 <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Login URL</div>
@@ -73,15 +101,12 @@ export async function sendWelcomeEmail({
                 </div>
               </div>
             </div>
-
             <div style="background: #fef9c3; border-radius: 8px; padding: 12px 16px; margin-bottom: 28px;">
               <p style="margin: 0; font-size: 13px; color: #854d0e;">⚠️ Please change your password after your first login.</p>
             </div>
-
             <a href="${loginUrl}" style="display: block; text-align: center; background: #2563eb; color: white; padding: 14px 24px; border-radius: 10px; font-weight: 700; font-size: 15px; text-decoration: none;">
               Login to Dashboard →
             </a>
-
             <p style="text-align: center; margin: 24px 0 0; font-size: 12px; color: #94a3b8;">
               Sent by ${companyName} · Powered by SigmaTrack
             </p>
@@ -110,12 +135,11 @@ export async function sendPasswordResetEmail({
   newPassword: string;
 }) {
   try {
-    const transporter = await getTransporter();
-    const smtpUser = (await prisma.setting.findUnique({ where: { key: 'smtp_user' } }))?.value || process.env.SMTP_USER || '';
-    const fromName = (await prisma.setting.findUnique({ where: { key: 'smtp_from_name' } }))?.value || companyName;
-    await transporter.sendMail({
-      from: `"${fromName}" <${smtpUser}>`,
+    const { from, fromName } = await getEmailConfig();
+    await sendEmailViaApi({
       to,
+      from,
+      fromName,
       subject: `Password Reset — ${companyName}`,
       html: `
         <div style="font-family: 'Inter', Arial, sans-serif; max-width: 520px; margin: 0 auto; background: #f8fafc; padding: 32px 16px;">
@@ -129,7 +153,6 @@ export async function sendPasswordResetEmail({
             <p style="margin: 0 0 24px; font-size: 15px; color: #64748b; text-align: center;">
               Hi <strong>${employeeName}</strong>, your password has been reset by your administrator.
             </p>
-
             <div style="background: #f1f5f9; border-radius: 10px; padding: 20px; margin-bottom: 24px;">
               <div style="margin-bottom: 12px;">
                 <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Email</div>
@@ -142,15 +165,12 @@ export async function sendPasswordResetEmail({
                 </div>
               </div>
             </div>
-
             <div style="background: #fef9c3; border-radius: 8px; padding: 12px 16px; margin-bottom: 28px;">
               <p style="margin: 0; font-size: 13px; color: #854d0e;">⚠️ Please change your password after logging in.</p>
             </div>
-
             <a href="${loginUrl}" style="display: block; text-align: center; background: #d97706; color: white; padding: 14px 24px; border-radius: 10px; font-weight: 700; font-size: 15px; text-decoration: none;">
               Login Now →
             </a>
-
             <p style="text-align: center; margin: 24px 0 0; font-size: 12px; color: #94a3b8;">
               Sent by ${companyName} · Powered by SigmaTrack
             </p>

@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { getSession } from 'next-auth/react';
 import { Button } from '@/components/ui/Button';
 import styles from './desktop.module.css';
 import './override.css';
+
+export const runtime = 'edge';
 
 type TrackingState = 'STOPPED' | 'TRACKING' | 'AUTO_PAUSED';
 

@@ -1,12 +1,13 @@
+import { getSession } from '@/lib/auth';
 import React from 'react';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { ImageUploadForm, ChangePasswordForm } from '@/components/SettingsForms';
 import { redirect } from 'next/navigation';
 
+export const runtime = 'edge';
+
 export default async function SettingsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   
   if (!session?.user?.id) {
     redirect('/login');

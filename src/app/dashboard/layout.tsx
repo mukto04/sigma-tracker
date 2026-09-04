@@ -1,10 +1,11 @@
+import { getSession } from '@/lib/auth';
 import React from 'react';
 import styles from './layout.module.css';
 import { Button } from '@/components/ui/Button';
 
-import { getServerSession } from "next-auth/next";
+export const runtime = 'edge';
+
 import { prisma } from '@/lib/prisma';
-import { authOptions } from "@/lib/auth";
 import { DashboardNav } from './DashboardNav';
 
 export default async function DashboardLayout({
@@ -12,7 +13,7 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   
   let companyName = "SigmaTrack";
   let logoUrl = null;

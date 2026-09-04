@@ -1,13 +1,14 @@
+import { getSession } from '@/lib/auth';
 import React from 'react';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { DatePickerFilter } from '@/components/DatePickerFilter';
+
+export const runtime = 'edge';
 
 import { ScreenshotGrid } from '@/components/ScreenshotGrid';
 
 export default async function ScreenshotsPage({ searchParams }: { searchParams: { date?: string } }) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user?.id) return null;
 
   // Use selected date or default to today

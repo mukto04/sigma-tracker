@@ -1,8 +1,9 @@
+import { getSession } from '@/lib/auth';
 import React from 'react';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { DatePickerFilter } from '@/components/DatePickerFilter';
+
+export const runtime = 'edge';
 
 function formatDuration(seconds: number) {
   const h = Math.floor(seconds / 3600);
@@ -14,7 +15,7 @@ function formatDuration(seconds: number) {
 }
 
 export default async function TimesheetsPage({ searchParams }: { searchParams: { date?: string } }) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user?.id) return null;
 
   // Use selected date or default to today

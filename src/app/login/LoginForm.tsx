@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -21,14 +20,15 @@ export function LoginForm() {
     setError('');
 
     try {
-      const res = await signIn('credentials', {
-        redirect: false,
-        email,
-        password,
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
       });
 
-      if (res?.error) {
-        setError('Invalid email or password');
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || 'Invalid email or password');
       } else {
         const callbackUrl = searchParams.get('callbackUrl');
         if (callbackUrl) {
@@ -39,7 +39,7 @@ export function LoginForm() {
         router.refresh();
       }
     } catch (err) {
-      setError('An error occurred during login');
+      setError('Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -47,27 +47,31 @@ export function LoginForm() {
 
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
-      {error && <div style={{ color: '#ef4444', backgroundColor: '#fef2f2', padding: '0.75rem', borderRadius: '0.375rem', fontSize: '0.875rem' }}>{error}</div>}
-      
-      <Input 
-        label="Email address" 
-        type="email" 
-        placeholder="name@company.com" 
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required 
-      />
-      <Input 
-        label="Password" 
-        type="password" 
-        placeholder="••••••••" 
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required 
-      />
-      
-      <Button type="submit" variant="primary" fullWidth size="lg" className={styles.submitBtn} disabled={isLoading}>
-        {isLoading ? 'Logging in...' : 'Log In'}
+      <div className={styles.field}>
+        <label className={styles.label} htmlFor="email">Email</label>
+        <Input
+          id="email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Enter your email"
+          required
+        />
+      </div>
+      <div className={styles.field}>
+        <label className={styles.label} htmlFor="password">Password</label>
+        <Input
+          id="password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Enter your password"
+          required
+        />
+      </div>
+      {error && <p className={styles.error}>{error}</p>}
+      <Button type="submit" disabled={isLoading} className={styles.submitBtn}>
+        {isLoading ? 'Signing in...' : 'Sign In'}
       </Button>
     </form>
   );

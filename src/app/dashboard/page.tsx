@@ -1,13 +1,14 @@
+import { getSession } from '@/lib/auth';
 import React from 'react';
 import { Card } from '@/components/ui/Card';
 import styles from './dashboard.module.css';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
+export const runtime = 'edge';
+
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   
   if (!session?.user?.id) {
     redirect('/login');

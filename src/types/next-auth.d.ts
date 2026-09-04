@@ -1,12 +1,2 @@
-import 'next-auth';
-declare module 'next-auth' {
-  interface Session {
-    user: {
-      id: string;
-      name?: string | null;
-      email?: string | null;
-      image?: string | null;
-      role?: string;
-    };
-  }
-}
+// next-auth removed - using custom jose JWT auth
+export {};
