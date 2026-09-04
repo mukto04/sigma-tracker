@@ -1,10 +1,7 @@
 name = "sigma-tracker"
-main = ".vercel/output/static/_worker.js"
-compatibility_date = "2024-09-01"
+compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
-
-[assets]
-directory = ".vercel/output/static"
+pages_build_output_dir = ".vercel/output/static"
 
 [[d1_databases]]
 binding = "DB"
