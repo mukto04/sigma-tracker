@@ -2,10 +2,10 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaD1 } from '@prisma/adapter-d1';
 import { getRequestContext } from '@cloudflare/next-on-pages';
 
-let cachedPrisma: PrismaClient | null = null;
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
 
 function getPrisma() {
-  if (cachedPrisma) return cachedPrisma;
+  if (globalForPrisma.prisma) return globalForPrisma.prisma;
 
   try {
     const ctx = getRequestContext();
@@ -13,8 +13,8 @@ function getPrisma() {
       throw new Error("Cloudflare DB binding not found");
     }
     const adapter = new PrismaD1(ctx.env.DB);
-    cachedPrisma = new PrismaClient({ adapter });
-    return cachedPrisma;
+    globalForPrisma.prisma = new PrismaClient({ adapter });
+    return globalForPrisma.prisma;
   } catch (error) {
     console.error("Failed to initialize PrismaClient:", error);
     // During Next.js build time, getRequestContext throws because it's not the edge runtime.
