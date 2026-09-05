@@ -35,6 +35,7 @@ function initNativeBridge() {
 }
 initNativeBridge();
 
+
 export default function DesktopTracker() {
   const [trackingState, setTrackingState] = useState<TrackingState>('STOPPED');
   const [secondsElapsed, setSecondsElapsed] = useState(0);
@@ -42,47 +43,94 @@ export default function DesktopTracker() {
   const [idleLimit, setIdleLimit] = useState(0);
   const [realUserId, setRealUserId] = useState<string>('');
   const [userProfile, setUserProfile] = useState<{ name?: string | null; email?: string | null } | null>(null);
+  const [authStatus, setAuthStatus] = useState<'checking' | 'logged_in' | 'logged_out'>('checking');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
 
   const realUserIdRef = React.useRef(realUserId);
   useEffect(() => {
     realUserIdRef.current = realUserId;
   }, [realUserId]);
 
-  useEffect(() => {
-    initNativeBridge();
-    // 1. Try to restore cached user from localStorage immediately (for offline startup)
+  const loadSession = async () => {
+    // 1. Try to restore cached user from localStorage immediately
     try {
       const cached = JSON.parse(localStorage.getItem('tracker_cached_user') || '{}');
       if (cached?.id) {
         setRealUserId(cached.id);
         realUserIdRef.current = cached.id;
         setUserProfile({ name: cached.name, email: cached.email });
+        setAuthStatus('logged_in');
       }
     } catch (e) {}
 
-    // 2. Fetch fresh session from server if online
-    getSession().then((session) => {
-      if (session?.user) {
-        if (session.user.id) {
+    // 2. Fetch fresh session from server
+    try {
+      const res = await fetch('/api/auth/session');
+      if (res.ok) {
+        const session = await res.json();
+        if (session?.user?.id) {
           setRealUserId(session.user.id);
           realUserIdRef.current = session.user.id;
+          setUserProfile({ name: session.user.name, email: session.user.email });
+          setAuthStatus('logged_in');
+          try {
+            localStorage.setItem('tracker_cached_user', JSON.stringify({
+              id: session.user.id,
+              name: session.user.name,
+              email: session.user.email,
+            }));
+          } catch (e) {}
+        } else {
+          // No valid session — check if we have cached user
+          const cached = JSON.parse(localStorage.getItem('tracker_cached_user') || '{}');
+          if (cached?.id) {
+            setAuthStatus('logged_in'); // Use cached session
+          } else {
+            setAuthStatus('logged_out');
+          }
         }
-        const profile = {
-          name: session.user.name,
-          email: session.user.email,
-        };
-        setUserProfile(profile);
-        try {
-          localStorage.setItem('tracker_cached_user', JSON.stringify({
-            id: session.user.id,
-            name: session.user.name,
-            email: session.user.email,
-          }));
-        } catch (e) {}
+      } else {
+        const cached = JSON.parse(localStorage.getItem('tracker_cached_user') || '{}');
+        setAuthStatus(cached?.id ? 'logged_in' : 'logged_out');
       }
-    }).catch(() => {
-      // Offline fallback already loaded from localStorage
-    });
+    } catch (e) {
+      // Offline - use cache if available
+      try {
+        const cached = JSON.parse(localStorage.getItem('tracker_cached_user') || '{}');
+        setAuthStatus(cached?.id ? 'logged_in' : 'logged_out');
+      } catch (e2) {
+        setAuthStatus('logged_out');
+      }
+    }
+  };
+
+  const handleLogin = async () => {
+    setLoginLoading(true);
+    setLoginError('');
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+      });
+      const data = await res.json();
+      if (res.ok && (data.success || data.ok)) {
+        await loadSession();
+      } else {
+        setLoginError(data.error || 'Email or password is incorrect.');
+      }
+    } catch (e) {
+      setLoginError('Cannot connect to server.');
+    }
+    setLoginLoading(false);
+  };
+
+  useEffect(() => {
+    initNativeBridge();
+    loadSession();
   }, []);
 
   // Format seconds to HH:MM:SS
@@ -564,6 +612,56 @@ export default function DesktopTracker() {
   const displayActivitySeconds = isTodaySelected ? activitySeconds : (summaryData?.totalActivitySecondsToday || 0);
   const displayIdleSeconds = isTodaySelected ? idleSeconds : (summaryData?.totalIdleSecondsToday || 0);
   const isMacClient = typeof window !== 'undefined' && (window as any).electronAPI?.platform === 'darwin';
+
+  // Show loading screen while checking session
+  if (authStatus === 'checking') {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: '#0a0a0a' }}>
+        <div style={{ color: '#64748b', fontSize: '14px' }}>Loading...</div>
+      </div>
+    );
+  }
+
+  // Show login screen if not logged in
+  if (authStatus === 'logged_out') {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: '#0a0a0a', fontFamily: 'system-ui, sans-serif' }}>
+        <div style={{ backgroundColor: '#171717', borderRadius: '16px', padding: '2rem', width: '320px', border: '1px solid #262626' }}>
+          <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🕐</div>
+            <h2 style={{ color: '#fff', fontSize: '1.125rem', fontWeight: 700, margin: 0 }}>SigmaTracker</h2>
+            <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '0.25rem' }}>Sign in to start tracking</p>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <input
+              type="email"
+              placeholder="Email address"
+              value={loginEmail}
+              onChange={(e) => setLoginEmail(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+              style={{ padding: '0.65rem 0.875rem', backgroundColor: '#262626', border: '1px solid #333', borderRadius: '8px', color: '#fff', fontSize: '0.875rem', outline: 'none' }}
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={loginPassword}
+              onChange={(e) => setLoginPassword(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+              style={{ padding: '0.65rem 0.875rem', backgroundColor: '#262626', border: '1px solid #333', borderRadius: '8px', color: '#fff', fontSize: '0.875rem', outline: 'none' }}
+            />
+            {loginError && <div style={{ color: '#ef4444', fontSize: '0.8rem', textAlign: 'center' }}>{loginError}</div>}
+            <button
+              onClick={handleLogin}
+              disabled={loginLoading}
+              style={{ padding: '0.75rem', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '0.875rem', cursor: loginLoading ? 'not-allowed' : 'pointer', opacity: loginLoading ? 0.7 : 1 }}
+            >
+              {loginLoading ? 'Signing in...' : 'Sign In'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.appContainer}>
