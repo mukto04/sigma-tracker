@@ -983,7 +983,7 @@ export default function DesktopTracker() {
                   return (
                     <>
                       {/* TIME LOGGED BY HOUR */}
-                      <div style={{ position: 'relative' }}>
+                      <div style={{ position: 'relative', zIndex: hoveredChart === 'logged' ? 10 : 1 }}>
                         <div style={{ color: '#a3a3a3', fontSize: '13px', marginBottom: '6px' }}>Time logged by hour</div>
                         <div style={{ display: 'flex', width: '100%', marginBottom: '6px', borderBottom: '1px solid #262626' }}>
                           {displayHours.map((h, idx) => (
@@ -1010,8 +1010,8 @@ export default function DesktopTracker() {
                         {hoveredChart === 'logged' && hoveredHour !== null && (
                           <div style={{
                             position: 'absolute',
-                            bottom: '100%',
-                            marginBottom: '6px',
+                            top: '100%',
+                            marginTop: '6px',
                             left: `${Math.min(80, Math.max(20, ((displayHours.indexOf(hoveredHour) + 0.5) / displayHours.length) * 100))}%`,
                             transform: 'translate(-50%, 0)',
                             backgroundColor: '#121212',
@@ -1042,7 +1042,7 @@ export default function DesktopTracker() {
                       </div>
                       
                       {/* PRODUCTIVE VS UNPRODUCTIVE ACTIVITY BY HOUR (STACKED BAR) */}
-                      <div style={{ position: 'relative' }}>
+                      <div style={{ position: 'relative', zIndex: hoveredChart === 'productivity' ? 10 : 1 }}>
                         <div style={{ color: '#a3a3a3', fontSize: '13px', marginBottom: '6px' }}>Productive vs. unproductive activity by hour</div>
                         <div style={{ display: 'flex', width: '100%', marginBottom: '6px', borderBottom: '1px solid #262626' }}>
                           {displayHours.map((h, idx) => (
@@ -1121,7 +1121,7 @@ export default function DesktopTracker() {
                       </div>
 
                       {/* ACTIVE APPS BY HOUR */}
-                      <div style={{ position: 'relative' }}>
+                      <div style={{ position: 'relative', zIndex: hoveredChart === 'apps' ? 10 : 1 }}>
                         <div style={{ color: '#a3a3a3', fontSize: '13px', marginBottom: '6px' }}>Active apps</div>
                         <div style={{ display: 'flex', width: '100%', marginBottom: '6px', borderBottom: '1px solid #262626' }}>
                           {displayHours.map((h, idx) => (

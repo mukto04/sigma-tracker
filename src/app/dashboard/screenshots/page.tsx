@@ -20,12 +20,22 @@ export default async function ScreenshotsPage({ searchParams }: { searchParams: 
   const endOfDay = new Date(selectedDate);
   endOfDay.setHours(23, 59, 59, 999);
 
-  const screenshots = await prisma.screenshot.findMany({
+  let screenshots = await prisma.screenshot.findMany({
     where: {
       userId: session.user.id,
       createdAt: { gte: startOfDay, lte: endOfDay }
     },
-    orderBy: { createdAt: 'desc' }
+    orderBy: { createdAt: 'desc' },
+    take: 200
+  });
+
+  screenshots = screenshots.map(s => {
+    if (s.imageUrl && s.imageUrl.includes('pub-your-r2-dev-url.r2.dev')) {
+      const parts = s.imageUrl.split('/');
+      const filename = parts.slice(parts.length - 3).join('/');
+      return { ...s, imageUrl: `/api/tracker/screenshots/image?file=${filename}` };
+    }
+    return s;
   });
 
   return (

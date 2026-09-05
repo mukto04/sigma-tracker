@@ -36,6 +36,7 @@ export default async function EmployeeScreenshotsPage({
       screenshots: {
         where: { createdAt: { gte: fromDate, lte: toDate } },
         orderBy: { createdAt: 'desc' },
+        take: 300,
       },
     },
   });
@@ -116,7 +117,14 @@ export default async function EmployeeScreenshotsPage({
       </div>
 
       {/* Interactive Screenshot Gallery Grid */}
-      <ScreenshotGrid screenshots={user.screenshots} />
+      <ScreenshotGrid screenshots={user.screenshots.map(s => {
+        if (s.imageUrl && s.imageUrl.includes('pub-your-r2-dev-url.r2.dev')) {
+          const parts = s.imageUrl.split('/');
+          const filename = parts.slice(parts.length - 3).join('/');
+          return { ...s, imageUrl: `/api/tracker/screenshots/image?file=${filename}` };
+        }
+        return s;
+      })} />
     </div>
   );
 }

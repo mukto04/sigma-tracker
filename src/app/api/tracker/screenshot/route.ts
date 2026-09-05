@@ -34,10 +34,8 @@ export async function POST(req: Request) {
         httpMetadata: { contentType: 'image/jpeg' },
       });
 
-      // R2 public dev URL (you must enable public access in dashboard)
-      const baseUrl = 'https://pub-your-r2-dev-url.r2.dev'; // User needs to update this or set it via ENV
-      // Wait, we can get it from an ENV variable if set, otherwise fallback
-      finalImageUrl = `${env.R2_PUBLIC_URL || baseUrl}/${filename}`;
+      // Use our internal proxy endpoint so we don't need the user to setup a Public R2 Bucket domain
+      finalImageUrl = `/api/tracker/screenshots/image?file=${filename}`;
     }
 
     const screenshot = await prisma.screenshot.create({

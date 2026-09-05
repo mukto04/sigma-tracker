@@ -54,7 +54,7 @@ export default async function CompanyAdminScreenshotsPage({
     whereClause.userId = selectedUserId;
   }
 
-  const screenshots = await prisma.screenshot.findMany({
+  let screenshots = await prisma.screenshot.findMany({
     where: whereClause,
     include: {
       user: {
@@ -66,7 +66,17 @@ export default async function CompanyAdminScreenshotsPage({
       },
     },
     orderBy: { createdAt: 'desc' },
-    take: 120, // Clean batch limit
+    take: 100, // Limit to recent 100 for memory safety
+  });
+
+  // Fix legacy dummy R2 URLs to use the proxy endpoint dynamically
+  screenshots = screenshots.map(s => {
+    if (s.imageUrl && s.imageUrl.includes('pub-your-r2-dev-url.r2.dev')) {
+      const parts = s.imageUrl.split('/');
+      const filename = parts.slice(parts.length - 3).join('/');
+      return { ...s, imageUrl: `/api/tracker/screenshots/image?file=${filename}` };
+    }
+    return s;
   });
 
   // Unique users with screenshots
