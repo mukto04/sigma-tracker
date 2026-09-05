@@ -135,26 +135,61 @@ fn check_input_tick_native() -> u32 {
 
 fn capture_primary_screen() -> Option<String> {
     let screens = screenshots::Screen::all().ok()?;
-    let first = screens.first()?;
-    let img = first.capture().ok()?;
-    
-    // Encode to JPEG using fast dynamic image encoder
-    let mut jpeg_bytes = Vec::new();
-    let mut cursor = std::io::Cursor::new(&mut jpeg_bytes);
-    
-    // image::RgbaImage buffer from raw pixels
-    if let Some(rgba) = image::RgbaImage::from_raw(img.width(), img.height(), img.into_raw()) {
-        let dynamic = image::DynamicImage::ImageRgba8(rgba);
-        let target = if dynamic.width() > 1920 {
-            dynamic.resize(1920, 1080, image::imageops::FilterType::Nearest)
-        } else {
-            dynamic
-        };
-        if target.write_to(&mut cursor, image::ImageFormat::Jpeg).is_ok() {
-            let b64 = BASE64_STANDARD.encode(&jpeg_bytes);
-            return Some(format!("data:image/jpeg;base64,{}", b64));
+    if screens.is_empty() { return None; }
+
+    let mut captures = Vec::new();
+    let mut min_x = i32::MAX;
+    let mut min_y = i32::MAX;
+    let mut max_x = i32::MIN;
+    let mut max_y = i32::MIN;
+
+    // Capture all screens and find bounding box
+    for screen in screens {
+        if let Ok(img) = screen.capture() {
+            let info = screen.display_info;
+            min_x = min_x.min(info.x);
+            min_y = min_y.min(info.y);
+            max_x = max_x.max(info.x + info.width as i32);
+            max_y = max_y.max(info.y + info.height as i32);
+            captures.push((info, img));
         }
     }
+
+    if captures.is_empty() { return None; }
+
+    let total_width = (max_x - min_x) as u32;
+    let total_height = (max_y - min_y) as u32;
+
+    // Create a blank black canvas covering all screens
+    let mut combined_rgba = image::RgbaImage::from_pixel(total_width, total_height, image::Rgba([0, 0, 0, 255]));
+
+    for (info, img) in captures {
+        let offset_x = (info.x - min_x) as i64;
+        let offset_y = (info.y - min_y) as i64;
+        
+        if let Some(rgba) = image::RgbaImage::from_raw(img.width(), img.height(), img.into_raw()) {
+            image::imageops::overlay(&mut combined_rgba, &rgba, offset_x, offset_y);
+        }
+    }
+
+    let dynamic = image::DynamicImage::ImageRgba8(combined_rgba);
+    
+    // Resize if width is larger than 1920 (to keep file size small for multi-monitor setups)
+    let target = if dynamic.width() > 1920 {
+        // Calculate new height maintaining aspect ratio
+        let new_height = (1920.0 / dynamic.width() as f32 * dynamic.height() as f32) as u32;
+        dynamic.resize_exact(1920, new_height, image::imageops::FilterType::Nearest)
+    } else {
+        dynamic
+    };
+
+    let mut jpeg_bytes = Vec::new();
+    let mut cursor = std::io::Cursor::new(&mut jpeg_bytes);
+    if target.write_to(&mut cursor, image::ImageFormat::Jpeg).is_ok() {
+        let b64 = BASE64_STANDARD.encode(&jpeg_bytes);
+        return Some(format!("data:image/jpeg;base64,{}", b64));
+    }
+
     None
 }
 
