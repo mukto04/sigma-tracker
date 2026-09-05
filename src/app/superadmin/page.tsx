@@ -229,10 +229,10 @@ export default async function SuperadminPage({ searchParams }: { searchParams: P
 
       {/* TABS */}
       <div style={styles.tabsContainer}>
-        <Link href="/superadmin?tab=all" style={currentTab === 'all' ? styles.tabActive : styles.tabInactive}>ALL <span style={styles.badge}>{total}</span></Link>
-        <Link href="/superadmin?tab=active" style={currentTab === 'active' ? styles.tabActive : styles.tabInactive}>ACTIVE <span style={styles.badge}>{activeCount}</span></Link>
-        <Link href="/superadmin?tab=terminated" style={currentTab === 'terminated' ? styles.tabActive : styles.tabInactive}>TERMINATED <span style={styles.badge}>{terminatedCount}</span></Link>
-        <Link href="/superadmin?tab=trash" style={currentTab === 'trash' ? styles.tabActive : styles.tabInactive}>TRASH BIN <span style={styles.badge}>{deletedCount}</span></Link>
+        <Link href="/superadmin?tab=all" prefetch={false} style={currentTab === 'all' ? styles.tabActive : styles.tabInactive}>ALL <span style={styles.badge}>{total}</span></Link>
+        <Link href="/superadmin?tab=active" prefetch={false} style={currentTab === 'active' ? styles.tabActive : styles.tabInactive}>ACTIVE <span style={styles.badge}>{activeCount}</span></Link>
+        <Link href="/superadmin?tab=terminated" prefetch={false} style={currentTab === 'terminated' ? styles.tabActive : styles.tabInactive}>TERMINATED <span style={styles.badge}>{terminatedCount}</span></Link>
+        <Link href="/superadmin?tab=trash" prefetch={false} style={currentTab === 'trash' ? styles.tabActive : styles.tabInactive}>TRASH BIN <span style={styles.badge}>{deletedCount}</span></Link>
       </div>
 
       {/* For MVP manually onboarding, we still include the form but styled dark */}

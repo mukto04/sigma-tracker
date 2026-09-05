@@ -140,6 +140,7 @@ export default function SuperadminLayout({ children }: { children: React.ReactNo
             <Link 
               key={link.href} 
               href={link.href} 
+              prefetch={false}
               style={{
                 ...styles.navItem,
                 ...(link.isActive ? styles.navItemActive : styles.navItemInactive)

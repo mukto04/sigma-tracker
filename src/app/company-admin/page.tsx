@@ -279,7 +279,7 @@ export default async function CompanyAdminDashboard() {
           <div style={styles.card}>
             <div style={styles.cardTitle}>
               <span>Recent Time Entries (Today)</span>
-              <Link href="/company-admin/reports" style={{ fontSize: '0.8125rem', color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>
+              <Link href="/company-admin/reports" prefetch={false} style={{ fontSize: '0.8125rem', color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>
                 View All Reports →
               </Link>
             </div>
@@ -365,7 +365,7 @@ export default async function CompanyAdminDashboard() {
           <div style={styles.card}>
             <div style={styles.cardTitle}>
               <span>Team Members ({employees.length})</span>
-              <Link href="/company-admin/employees" style={{ fontSize: '0.8125rem', color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>
+              <Link href="/company-admin/employees" prefetch={false} style={{ fontSize: '0.8125rem', color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>
                 Manage →
               </Link>
             </div>

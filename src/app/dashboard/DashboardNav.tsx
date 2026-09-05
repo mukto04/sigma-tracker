@@ -9,19 +9,19 @@ export function DashboardNav() {
 
   return (
     <nav className={styles.nav}>
-      <Link href="/dashboard" className={`${styles.navItem} ${pathname === '/dashboard' ? styles.active : ''}`}>
+      <Link href="/dashboard" prefetch={false} className={`${styles.navItem} ${pathname === '/dashboard' ? styles.active : ''}`}>
         Dashboard
       </Link>
-      <Link href="/dashboard/timesheets" className={`${styles.navItem} ${pathname === '/dashboard/timesheets' ? styles.active : ''}`}>
+      <Link href="/dashboard/timesheets" prefetch={false} className={`${styles.navItem} ${pathname === '/dashboard/timesheets' ? styles.active : ''}`}>
         Timesheets
       </Link>
-      <Link href="/dashboard/screenshots" className={`${styles.navItem} ${pathname === '/dashboard/screenshots' ? styles.active : ''}`}>
+      <Link href="/dashboard/screenshots" prefetch={false} className={`${styles.navItem} ${pathname === '/dashboard/screenshots' ? styles.active : ''}`}>
         Screenshots
       </Link>
-      <Link href="/dashboard/reports" className={`${styles.navItem} ${pathname === '/dashboard/reports' ? styles.active : ''}`}>
+      <Link href="/dashboard/reports" prefetch={false} className={`${styles.navItem} ${pathname === '/dashboard/reports' ? styles.active : ''}`}>
         Reports
       </Link>
-      <Link href="/dashboard/settings" className={`${styles.navItem} ${pathname === '/dashboard/settings' ? styles.active : ''}`}>
+      <Link href="/dashboard/settings" prefetch={false} className={`${styles.navItem} ${pathname === '/dashboard/settings' ? styles.active : ''}`}>
         Settings
       </Link>
       <button 

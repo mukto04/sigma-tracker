@@ -111,6 +111,7 @@ export function AdminSidebar({ companyName, adminName, logoUrl }: { companyName:
               <Link 
                 key={item.href} 
                 href={item.href} 
+                prefetch={false}
                 className={`nav-link ${isActive ? 'active' : ''}`}
                 onClick={() => setIsOpen(false)}
               >
