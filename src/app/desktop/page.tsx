@@ -947,11 +947,28 @@ export default function DesktopTracker() {
 
                 <div>
                   <div style={{ color: '#a3a3a3', fontSize: '13px', marginBottom: '8px' }}>Top active apps</div>
-                  <div style={{ display: 'flex', gap: '12px' }}>
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                     {(summaryData?.topApps || []).map((app: any, i: number) => (
-                      <div key={i} style={{ textAlign: 'center' }}>
-                        <div style={{ width: '32px', height: '32px', background: app.color, borderRadius: '8px', marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: app.textColor, fontWeight: 'bold' }}>{app.name}</div>
+                      <div key={i} style={{ textAlign: 'center', position: 'relative' }}
+                        onMouseEnter={(e) => {
+                          const tip = e.currentTarget.querySelector('.app-tooltip') as HTMLElement;
+                          if (tip) tip.style.display = 'block';
+                        }}
+                        onMouseLeave={(e) => {
+                          const tip = e.currentTarget.querySelector('.app-tooltip') as HTMLElement;
+                          if (tip) tip.style.display = 'none';
+                        }}
+                      >
+                        <div style={{ width: '36px', height: '36px', background: app.color, borderRadius: '8px', marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: app.textColor, fontWeight: 'bold', fontSize: '11px', cursor: 'default' }}>{app.name}</div>
                         <div style={{ color: '#a3a3a3', fontSize: '10px' }}>{app.percent}%</div>
+                        <div className="app-tooltip" style={{
+                          display: 'none', position: 'absolute', bottom: '110%', left: '50%', transform: 'translateX(-50%)',
+                          backgroundColor: '#1e1e1e', border: '1px solid #444', borderRadius: '6px',
+                          padding: '4px 8px', fontSize: '11px', color: '#fff', whiteSpace: 'nowrap',
+                          zIndex: 99999, boxShadow: '0 4px 12px rgba(0,0,0,0.6)', pointerEvents: 'none'
+                        }}>
+                          {app.fullName || app.name}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -993,8 +1010,9 @@ export default function DesktopTracker() {
                         {hoveredChart === 'logged' && hoveredHour !== null && (
                           <div style={{
                             position: 'absolute',
-                            top: '35px',
-                            left: `${Math.min(85, Math.max(15, ((displayHours.indexOf(hoveredHour) + 0.5) / displayHours.length) * 100))}%`,
+                            bottom: '100%',
+                            marginBottom: '6px',
+                            left: `${Math.min(80, Math.max(20, ((displayHours.indexOf(hoveredHour) + 0.5) / displayHours.length) * 100))}%`,
                             transform: 'translate(-50%, 0)',
                             backgroundColor: '#121212',
                             border: '1px solid #333',
@@ -1060,8 +1078,9 @@ export default function DesktopTracker() {
                         {hoveredChart === 'productivity' && hoveredHour !== null && (
                           <div style={{
                             position: 'absolute',
-                            top: '35px',
-                            left: `${Math.min(85, Math.max(15, ((displayHours.indexOf(hoveredHour) + 0.5) / displayHours.length) * 100))}%`,
+                            bottom: '100%',
+                            marginBottom: '6px',
+                            left: `${Math.min(80, Math.max(20, ((displayHours.indexOf(hoveredHour) + 0.5) / displayHours.length) * 100))}%`,
                             transform: 'translate(-50%, 0)',
                             backgroundColor: '#121212',
                             border: '1px solid #333',
@@ -1133,8 +1152,9 @@ export default function DesktopTracker() {
                         {hoveredChart === 'apps' && hoveredHour !== null && (
                           <div style={{
                             position: 'absolute',
-                            top: '35px',
-                            left: `${Math.min(85, Math.max(15, ((displayHours.indexOf(hoveredHour) + 0.5) / displayHours.length) * 100))}%`,
+                            bottom: '100%',
+                            marginBottom: '6px',
+                            left: `${Math.min(80, Math.max(20, ((displayHours.indexOf(hoveredHour) + 0.5) / displayHours.length) * 100))}%`,
                             transform: 'translate(-50%, 0)',
                             backgroundColor: '#121212',
                             border: '1px solid #333',
@@ -1201,17 +1221,26 @@ export default function DesktopTracker() {
           )}
 
           {activeTab === 'screenshots' && (
-            <div style={{ padding: '1.5rem', overflowY: 'auto', height: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', alignContent: 'start', gridAutoRows: 'max-content' }}>
+            <div style={{ padding: '1rem', overflowY: 'auto', height: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', alignContent: 'start' }}>
               {screenshots.length === 0 ? (
                 <div style={{ gridColumn: '1 / -1', textAlign: 'center', color: '#a3a3a3', marginTop: '2rem' }}>No screenshots today.</div>
               ) : (
                 screenshots.map(s => (
-                  <div key={s.id} onClick={() => setFullScreenImage(s.imageUrl)} style={{ cursor: 'pointer', position: 'relative', borderRadius: '4px', overflow: 'hidden', border: '1px solid #333' }}>
-                    <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', padding: '4px 8px', background: 'rgba(0,0,0,0.7)', color: '#3b82f6', fontSize: '11px', display: 'flex', justifyContent: 'space-between' }}>
+                  <div key={s.id} onClick={() => setFullScreenImage(s.imageUrl)} style={{ cursor: 'pointer', position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid #2a2a2a', backgroundColor: '#111', height: '110px' }}>
+                    {s.imageUrl ? (
+                      <img 
+                        src={s.imageUrl} 
+                        alt="Screenshot" 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#444', fontSize: '11px' }}>No image</div>
+                    )}
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', padding: '4px 8px', background: 'linear-gradient(transparent, rgba(0,0,0,0.85))', color: '#3b82f6', fontSize: '10px', display: 'flex', justifyContent: 'space-between', boxSizing: 'border-box' }}>
                       <span>{new Date(s.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})}</span>
                       <span style={{ color: '#a3a3a3' }}>{new Date(s.createdAt).toLocaleDateString()}</span>
                     </div>
-                    <img src={s.imageUrl} alt="Screenshot" style={{ width: '100%', height: 'auto', display: 'block' }} />
                   </div>
                 ))
               )}
