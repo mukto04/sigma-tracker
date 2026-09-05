@@ -54,13 +54,27 @@ export default async function CompanyAdminDashboard() {
     }
   });
   
+  const activityAgg = await prisma.activityLog.aggregate({
+    _avg: { productivityScore: true },
+    where: {
+      user: { companyId: company.id },
+      createdAt: { gte: today }
+    }
+  });
+  
+  const avgActivity = activityAgg._avg.productivityScore 
+    ? Math.round(activityAgg._avg.productivityScore) 
+    : 0;
+
+  // Sample the last 1000 logs for apps to prevent memory limits
   const activitiesToday = await prisma.activityLog.findMany({
     where: {
       user: { companyId: company.id },
       createdAt: { gte: today }
     },
-    include: { user: true },
-    orderBy: { createdAt: 'desc' }
+    select: { activeApps: true, userId: true, createdAt: true },
+    orderBy: { createdAt: 'desc' },
+    take: 1000
   });
 
   const screenshotsToday = await prisma.screenshot.findMany({
@@ -73,11 +87,7 @@ export default async function CompanyAdminDashboard() {
     take: 4
   });
 
-  const avgActivity = activitiesToday.length > 0 
-    ? Math.round(activitiesToday.reduce((acc, a) => acc + a.productivityScore, 0) / activitiesToday.length)
-    : 0;
-
-  // Aggregate Company-wide Top Active Apps
+  // Aggregate Company-wide Top Active Apps (Sampled)
   const globalAppTimes: Record<string, number> = {};
   activitiesToday.forEach(log => {
     try {

@@ -32,13 +32,15 @@ export default async function DashboardLayout({
   return (
     <div className={styles.container}>
       <aside className={styles.sidebar}>
-        <div className={styles.brand}>
+        <div className={styles.brand} style={{ padding: logoUrl ? '1rem' : undefined, display: 'flex', alignItems: 'center' }}>
           {logoUrl ? (
-            <img src={logoUrl} alt={companyName} style={{ width: '28px', height: '28px', borderRadius: '6px', objectFit: 'cover' }} />
+            <img src={logoUrl} alt={companyName} style={{ maxHeight: '40px', maxWidth: '100%', objectFit: 'contain', display: 'block' }} />
           ) : (
-            <div className={styles.brandIcon}></div>
+            <>
+              <div className={styles.brandIcon}></div>
+              <span className={styles.brandName}>{companyName}</span>
+            </>
           )}
-          <span className={styles.brandName}>{companyName}</span>
         </div>
         <DashboardNav />
       </aside>

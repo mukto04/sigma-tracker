@@ -55,15 +55,16 @@ export default async function DashboardPage() {
   const hours = Math.floor(totalSecondsToday / 3600);
   const minutes = Math.floor((totalSecondsToday % 3600) / 60);
 
-  const activitiesToday = await prisma.activityLog.findMany({
+  const activityAgg = await prisma.activityLog.aggregate({
+    _avg: { productivityScore: true },
     where: {
       userId: user.id,
       createdAt: { gte: today }
     }
   });
 
-  const avgActivity = activitiesToday.length > 0 
-    ? Math.round(activitiesToday.reduce((acc, a) => acc + a.productivityScore, 0) / activitiesToday.length)
+  const avgActivity = activityAgg._avg.productivityScore 
+    ? Math.round(activityAgg._avg.productivityScore) 
     : 0;
 
   return (

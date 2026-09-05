@@ -90,15 +90,18 @@ export function AdminSidebar({ companyName, adminName, logoUrl }: { companyName:
       `}</style>
       <div className="admin-sidebar">
         <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #1e293b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            {logoUrl && (
-              <img src={logoUrl} alt={companyName} style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover' }} />
-            )}
-            <div>
-              <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>{companyName}</h2>
-              <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.25rem' }}>Workspace Admin</div>
+          {logoUrl ? (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', overflow: 'hidden', paddingRight: '0.5rem' }}>
+              <img src={logoUrl} alt={companyName} style={{ maxHeight: '40px', maxWidth: '100%', objectFit: 'contain', display: 'block' }} />
             </div>
-          </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, overflow: 'hidden', paddingRight: '0.5rem' }}>
+              <div style={{ minWidth: 0 }}>
+                <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#f8fafc', margin: 0, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{companyName}</h2>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.25rem' }}>Workspace Admin</div>
+              </div>
+            </div>
+          )}
           <button className="mobile-toggle" onClick={() => setIsOpen(!isOpen)}>
             {isOpen ? '✕' : '☰'}
           </button>
