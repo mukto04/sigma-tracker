@@ -89,9 +89,9 @@ export default function Home() {
           <h2>Ready to supercharge your team's productivity?</h2>
           <p>Download our native desktop client for your operating system. Lightweight, secure, and blazing fast.</p>
           <div className={styles.downloadActions}>
-            <a href="/SigmaTracker.exe" download="SigmaTracker.exe">
+            <a href="/SigmaTracker.msi" download="SigmaTracker.msi">
               <Button size="lg" variant="primary">
-                🪟 Windows (.exe) • 8 MB
+                💻 Windows Installer (.msi)
               </Button>
             </a>
             <a href="/SigmaTracker-mac.dmg" download="SigmaTracker-mac.dmg">
