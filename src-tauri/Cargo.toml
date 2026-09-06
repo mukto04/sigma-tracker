@@ -26,6 +26,7 @@ tauri-plugin-log = "2"
 base64 = "0.22"
 image = { version = "0.25", default-features = false, features = ["jpeg"] }
 screenshots = "0.8"
+tauri-plugin-notification = "2.4.0"
 
 [target.'cfg(windows)'.dependencies.windows-sys]
 version = "0.59"

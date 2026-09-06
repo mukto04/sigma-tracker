@@ -24,9 +24,11 @@ function initNativeBridge() {
         },
         getSystemIdleTime: () => core.invoke('get_system_idle_time'),
         getActivityStats: () => core.invoke('get_activity_stats'),
-        showNotification: (title: string, body: string) => {
-          if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification(title, { body });
+        showNotification: async (title: string, body: string) => {
+          try {
+            await core.invoke('plugin:notification|notify', { title, body });
+          } catch (e) {
+            console.error('Notification failed', e);
           }
         }
       };
@@ -448,6 +450,7 @@ export default function DesktopTracker() {
             offlineCreatedAt: new Date().toISOString()
           });
           console.log('Screenshot saved to DB.');
+          notify('Screenshot Taken', 'A periodic screenshot has been captured.');
         } catch (error) {
           console.error('Failed to save screenshot:', error);
         }
@@ -1001,20 +1004,15 @@ export default function DesktopTracker() {
               <div style={{ width: '65%', paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'relative' }}>
                 {(() => {
                   const activeHours = Object.keys(summaryData?.hourlyTimeLogged || {}).map(Number);
-                  let minHour = activeHours.length > 0 ? Math.min(...activeHours) : 6;
-                  let maxHour = activeHours.length > 0 ? Math.max(...activeHours) : 13;
+                  // Default to 9:00 AM (9) if no data, otherwise start at the earliest logged hour
+                  let minHour = activeHours.length > 0 ? Math.min(...activeHours) : 9;
                   
-                  // ensure at least 8 hours are shown for visual padding
-                  if (maxHour - minHour < 7) {
-                    maxHour = Math.min(23, minHour + 7);
-                    if (maxHour - minHour < 7) {
-                      minHour = Math.max(0, maxHour - 7);
-                    }
-                  }
+                  // Ensure we can fit 14 hours without going past 23
+                  minHour = Math.max(0, Math.min(minHour, 24 - 14));
 
                   const displayHours: number[] = [];
-                  for (let i = minHour; i <= maxHour; i++) {
-                    displayHours.push(i);
+                  for (let i = 0; i < 14; i++) {
+                    displayHours.push(minHour + i);
                   }
                   
                   return (
@@ -1025,7 +1023,7 @@ export default function DesktopTracker() {
                         <div style={{ display: 'flex', width: '100%', marginBottom: '6px', borderBottom: '1px solid #262626' }}>
                           {displayHours.map((h, idx) => (
                             <div key={idx} style={{ flex: 1, textAlign: 'center', fontSize: '10px', color: '#737373', borderLeft: idx > 0 ? '1px solid #262626' : 'none', padding: '2px 0' }}>
-                              {String(h).padStart(2, '0')}:00
+                              {idx % 2 === 0 ? `${String(h).padStart(2, '0')}:00` : ''}
                             </div>
                           ))}
                         </div>
@@ -1084,7 +1082,7 @@ export default function DesktopTracker() {
                         <div style={{ display: 'flex', width: '100%', marginBottom: '6px', borderBottom: '1px solid #262626' }}>
                           {displayHours.map((h, idx) => (
                             <div key={idx} style={{ flex: 1, textAlign: 'center', fontSize: '10px', color: '#737373', borderLeft: idx > 0 ? '1px solid #262626' : 'none', padding: '2px 0' }}>
-                              {String(h).padStart(2, '0')}:00
+                              {idx % 2 === 0 ? `${String(h).padStart(2, '0')}:00` : ''}
                             </div>
                           ))}
                         </div>
@@ -1163,7 +1161,7 @@ export default function DesktopTracker() {
                         <div style={{ display: 'flex', width: '100%', marginBottom: '6px', borderBottom: '1px solid #262626' }}>
                           {displayHours.map((h, idx) => (
                             <div key={idx} style={{ flex: 1, textAlign: 'center', fontSize: '10px', color: '#737373', borderLeft: idx > 0 ? '1px solid #262626' : 'none', padding: '2px 0' }}>
-                              {String(h).padStart(2, '0')}:00
+                              {idx % 2 === 0 ? `${String(h).padStart(2, '0')}:00` : ''}
                             </div>
                           ))}
                         </div>
