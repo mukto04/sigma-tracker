@@ -140,7 +140,7 @@ export default async function DashboardPage() {
               Download our desktop application to start logging your time, activity, and screenshots automatically.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%', maxWidth: '260px', marginTop: '0.75rem' }}>
-              <a href="/SigmaTracker.exe" download="SigmaTracker.exe" style={{
+              <a href="/SigmaTracker.msi" download="SigmaTracker.msi" style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
