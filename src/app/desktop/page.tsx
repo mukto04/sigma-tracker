@@ -318,14 +318,36 @@ export default function DesktopTracker() {
   }, []);
 
   const lastTickTime = React.useRef<number>(0);
+  const trackingDayRef = React.useRef<number>(new Date().getDate());
 
   // Timer interval
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (trackingState === 'TRACKING') {
       lastTickTime.current = Date.now();
+      trackingDayRef.current = new Date().getDate(); // init day when tracking starts
+      
       interval = setInterval(() => {
         const now = Date.now();
+        
+        // --- Midnight Auto-Rollover Logic ---
+        if (new Date(now).getDate() !== trackingDayRef.current) {
+          console.log("Midnight crossed, auto-restarting session for new day");
+          stopTrackingLogic(false); // completely stop current session
+          setTimeout(() => {
+             // Reset local states for the new day
+             setSecondsElapsed(0);
+             setActivitySeconds(0);
+             setIdleSeconds(0);
+             startTrackingLogic(false); // start fresh
+             refreshData();
+             // clear selected date so it jumps back to Today
+             setSelectedDate(null);
+          }, 1500); // 1.5s delay to ensure backend completed the stop
+          return; // skip this tick
+        }
+        // ------------------------------------
+
         const diffSecs = Math.floor((now - lastTickTime.current) / 1000);
         if (diffSecs >= 1) {
           setSecondsElapsed((prev) => prev + diffSecs);
@@ -843,7 +865,7 @@ export default function DesktopTracker() {
                 {formatHourMin(daySeconds)}
               </div>
               {isToday && (
-                <div style={{ fontSize: '10px', color: '#22c55e', marginTop: '2px', fontWeight: 500 }}>Today</div>
+                <div style={{ fontSize: '10px', color: '#22c55e', marginTop: '4px', fontWeight: 500, textAlign: 'center', width: '100%' }}>Today</div>
               )}
             </div>
           );
@@ -978,7 +1000,22 @@ export default function DesktopTracker() {
               {/* RIGHT COLUMN */}
               <div style={{ width: '65%', paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'relative' }}>
                 {(() => {
-                  const displayHours = [6, 7, 8, 9, 10, 11, 12, 13];
+                  const activeHours = Object.keys(summaryData?.hourlyTimeLogged || {}).map(Number);
+                  let minHour = activeHours.length > 0 ? Math.min(...activeHours) : 6;
+                  let maxHour = activeHours.length > 0 ? Math.max(...activeHours) : 13;
+                  
+                  // ensure at least 8 hours are shown for visual padding
+                  if (maxHour - minHour < 7) {
+                    maxHour = Math.min(23, minHour + 7);
+                    if (maxHour - minHour < 7) {
+                      minHour = Math.max(0, maxHour - 7);
+                    }
+                  }
+
+                  const displayHours: number[] = [];
+                  for (let i = minHour; i <= maxHour; i++) {
+                    displayHours.push(i);
+                  }
                   
                   return (
                     <>
