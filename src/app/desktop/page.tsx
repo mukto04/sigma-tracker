@@ -1003,8 +1003,27 @@ export default function DesktopTracker() {
               {/* RIGHT COLUMN */}
               <div style={{ width: '65%', paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'relative' }}>
                 {(() => {
-                  const activeHours = Object.keys(summaryData?.hourlyTimeLogged || {}).map(Number);
-                  // Default to 9:00 AM (9) if no data, otherwise start at the earliest logged hour
+                  // --- UTC-to-Local timezone shift ---
+                  // Server returns hourly data indexed by UTC hour. We must shift to local hours.
+                  const tzOffsetHours = -Math.floor(new Date().getTimezoneOffset() / 60); // e.g. +6 for Bangladesh
+                  
+                  const shiftArray = (arr: any[] | undefined) => {
+                    if (!arr || arr.length === 0) return arr;
+                    const shifted: any[] = new Array(24).fill(arr[0] != null && typeof arr[0] === 'object' ? undefined : 0);
+                    for (let utcH = 0; utcH < 24; utcH++) {
+                      const localH = (utcH + tzOffsetHours + 24) % 24;
+                      shifted[localH] = arr[utcH] ?? (typeof arr[0] === 'object' ? [] : 0);
+                    }
+                    return shifted;
+                  };
+                  
+                  const localTimeLogged = shiftArray(summaryData?.hourlyTimeLogged);
+                  const localHourlyDetails = shiftArray(summaryData?.hourlyDetails);
+                  const localHourlyApps = shiftArray(summaryData?.hourlyApps);
+                  
+                  // Find which LOCAL hours have activity
+                  const activeHours = (localTimeLogged || []).map((v: number, i: number) => v > 0 ? i : -1).filter((i: number) => i >= 0);
+                  // Default to 9:00 AM if no data, otherwise start at the earliest logged local hour
                   let minHour = activeHours.length > 0 ? Math.min(...activeHours) : 9;
                   
                   // Ensure we can fit 14 hours without going past 23
@@ -1029,7 +1048,7 @@ export default function DesktopTracker() {
                         </div>
                         <div style={{ display: 'flex', alignItems: 'flex-end', height: '55px', gap: '4px', borderBottom: '1px solid #333', position: 'relative' }}>
                           {displayHours.map((h, idx) => {
-                            const timePercent = summaryData?.hourlyTimeLogged?.[h] || 0;
+                            const timePercent = localTimeLogged?.[h] || 0;
                             return (
                               <div 
                                 key={idx} 
@@ -1059,7 +1078,7 @@ export default function DesktopTracker() {
                             pointerEvents: 'none'
                           }}>
                             {(() => {
-                              const detail = summaryData?.hourlyDetails?.[hoveredHour];
+                              const detail = localHourlyDetails?.[hoveredHour];
                               return (
                                 <>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', color: '#3b82f6', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px', borderBottom: '1px solid #262626', paddingBottom: '4px' }}>
@@ -1088,7 +1107,7 @@ export default function DesktopTracker() {
                         </div>
                         <div style={{ display: 'flex', alignItems: 'flex-end', height: '55px', gap: '4px', borderBottom: '1px solid #333', position: 'relative' }}>
                           {displayHours.map((h, idx) => {
-                            const d = summaryData?.hourlyDetails?.[h];
+                            const d = localHourlyDetails?.[h];
                             const activeSecs = d?.activeSeconds || 0;
                             const idleSecs = d?.idleSeconds || 0;
                             const activeH = Math.min(100, Math.floor((activeSecs / 3600) * 100));
@@ -1127,7 +1146,7 @@ export default function DesktopTracker() {
                             pointerEvents: 'none'
                           }}>
                             {(() => {
-                              const detail = summaryData?.hourlyDetails?.[hoveredHour];
+                              const detail = localHourlyDetails?.[hoveredHour];
                               return (
                                 <>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', color: '#3b82f6', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px', borderBottom: '1px solid #262626', paddingBottom: '4px' }}>
@@ -1167,7 +1186,7 @@ export default function DesktopTracker() {
                         </div>
                         <div style={{ display: 'flex', alignItems: 'flex-end', height: '55px', gap: '4px', borderBottom: '1px solid #333', position: 'relative' }}>
                           {displayHours.map((h, idx) => {
-                            const apps = summaryData?.hourlyApps?.[h] || [];
+                            const apps = localHourlyApps?.[h] || [];
                             return (
                               <div 
                                 key={idx} 
@@ -1201,7 +1220,7 @@ export default function DesktopTracker() {
                             pointerEvents: 'none'
                           }}>
                             {(() => {
-                              const detail = summaryData?.hourlyDetails?.[hoveredHour];
+                              const detail = localHourlyDetails?.[hoveredHour];
                               const totalAppTime = detail?.apps?.reduce((acc: number, item: any) => acc + item.duration, 0) || 0;
                               return (
                                 <>
