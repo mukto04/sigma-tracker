@@ -66,7 +66,7 @@ export default async function CompanyAdminDashboard() {
     ? Math.round(activityAgg._avg.productivityScore) 
     : 0;
 
-  // Sample the last 1000 logs for apps to prevent memory limits
+  // Sample the last 150 logs for apps to prevent Cloudflare 1102 CPU limits
   const activitiesToday = await prisma.activityLog.findMany({
     where: {
       user: { companyId: company.id },
@@ -74,7 +74,7 @@ export default async function CompanyAdminDashboard() {
     },
     select: { activeApps: true, userId: true, createdAt: true },
     orderBy: { createdAt: 'desc' },
-    take: 1000
+    take: 150
   });
 
   const screenshotsToday = await prisma.screenshot.findMany({

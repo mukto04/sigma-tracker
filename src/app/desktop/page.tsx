@@ -26,7 +26,12 @@ function initNativeBridge() {
         getActivityStats: () => core.invoke('get_activity_stats'),
         showNotification: async (title: string, body: string) => {
           try {
-            await core.invoke('plugin:notification|notify', { title, body });
+            let perm = await core.invoke('plugin:notification|is_permission_granted');
+            if (!perm) {
+              const res = await core.invoke('plugin:notification|request_permission');
+              perm = res === 'granted' || res === 'prompt';
+            }
+            await core.invoke('plugin:notification|notify', { options: { title, body } });
           } catch (e) {
             console.error('Notification failed', e);
           }
