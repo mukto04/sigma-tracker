@@ -2,7 +2,6 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import bcrypt from 'bcryptjs';
 import { sendWelcomeEmail, sendPasswordResetEmail } from '@/lib/email';
 
 export async function addEmployee(companyId: string, name: string, email: string, pass: string) {
@@ -10,6 +9,7 @@ export async function addEmployee(companyId: string, name: string, email: string
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) return { success: false, error: 'Email already exists' };
 
+    const bcrypt = (await import('bcryptjs')).default;
     const hashedPassword = await bcrypt.hash(pass, 10);
 
     const newUser = await prisma.user.create({
@@ -79,6 +79,7 @@ export async function addProject(companyId: string, name: string, description: s
 
 export async function resetEmployeePassword(userId: string, newPassword: string) {
   try {
+    const bcrypt = (await import('bcryptjs')).default;
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     const user = await prisma.user.update({

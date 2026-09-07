@@ -11,6 +11,7 @@ export default async function EmployeesPage() {
     where: { name: { not: 'Superadmin HQ' } },
     include: {
       users: {
+        select: { id: true, name: true, email: true, role: true, createdAt: true },
         orderBy: { createdAt: 'asc' }
       }
     }

@@ -16,7 +16,10 @@ export default async function CompanyAdminLayout({
       name: { not: 'Superadmin HQ' }
     },
     include: {
-      users: true
+      users: {
+        where: { role: 'ADMIN' },
+        select: { name: true, role: true }
+      }
     }
   });
 
