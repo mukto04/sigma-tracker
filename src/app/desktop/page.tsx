@@ -26,14 +26,23 @@ function initNativeBridge() {
         getActivityStats: () => core.invoke('get_activity_stats'),
         showNotification: async (title: string, body: string) => {
           try {
-            let perm = await core.invoke('plugin:notification|is_permission_granted');
-            if (!perm) {
-              const res = await core.invoke('plugin:notification|request_permission');
-              perm = res === 'granted' || res === 'prompt';
+            await core.invoke('show_notification', { title, body });
+            return;
+          } catch (e1) {
+            try {
+              let perm = await core.invoke('plugin:notification|is_permission_granted');
+              if (!perm) {
+                const res = await core.invoke('plugin:notification|request_permission');
+                perm = res === 'granted' || res === 'prompt';
+              }
+              await core.invoke('plugin:notification|notify', { options: { title, body } });
+              return;
+            } catch (e2) {
+              console.error('Tauri notification error:', e2);
             }
-            await core.invoke('plugin:notification|notify', { options: { title, body } });
-          } catch (e) {
-            console.error('Notification failed', e);
+          }
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification(title, { body });
           }
         }
       };
@@ -463,9 +472,26 @@ export default function DesktopTracker() {
     }
   }, []);
 
-  const notify = (title: string, body: string) => {
-    if (typeof window !== 'undefined' && (window as any).electronAPI?.showNotification) {
-      (window as any).electronAPI.showNotification(title, body);
+  const notify = async (title: string, body: string) => {
+    if (typeof window === 'undefined') return;
+    const win = window as any;
+    if (win.electronAPI?.showNotification) {
+      win.electronAPI.showNotification(title, body);
+      return;
+    }
+    if (win.__TAURI__?.core) {
+      try {
+        await win.__TAURI__.core.invoke('show_notification', { title, body });
+        return;
+      } catch (e) {
+        try {
+          await win.__TAURI__.core.invoke('plugin:notification|notify', { options: { title, body } });
+          return;
+        } catch (e2) {}
+      }
+    }
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, { body });
     }
   };
 

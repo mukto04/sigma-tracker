@@ -35,12 +35,22 @@ export default async function CompanyAdminAppsPage({
   const query = await searchParams;
   const range = query.range || 'today';
 
-  const company = await prisma.company.findFirst({
-    where: { name: { not: 'Superadmin HQ' } },
-    include: { users: true },
-  });
+  let company: any = null;
+  try {
+    company = await prisma.company.findFirst({
+      where: { name: { not: 'Superadmin HQ' } },
+      include: { users: true },
+    });
+  } catch (err) {
+    console.error('Failed to load apps company:', err);
+  }
 
-  if (!company) return null;
+  if (!company) {
+    company = {
+      id: '',
+      users: []
+    };
+  }
 
   // Compute date range
   const now = new Date();

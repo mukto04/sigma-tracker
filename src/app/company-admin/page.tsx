@@ -18,78 +18,97 @@ function formatClockTime(date: Date) {
 }
 
 export default async function CompanyAdminDashboard() {
-  const company = await prisma.company.findFirst({
-    where: { name: { not: 'Superadmin HQ' } },
-    include: {
-      users: true,
-      projects: true
+  let company: any = null;
+  let timeEntriesToday: any[] = [];
+  let avgActivity = 0;
+  let activitiesToday: any[] = [];
+  let screenshotsToday: any[] = [];
+
+  try {
+    company = await prisma.company.findFirst({
+      where: { name: { not: 'Superadmin HQ' } },
+      include: {
+        users: true,
+        projects: true
+      }
+    });
+
+    if (company) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const [entries, activityAgg, activities, screenshots] = await Promise.all([
+        prisma.timeEntry.findMany({
+          where: {
+            user: { companyId: company.id },
+            createdAt: { gte: today }
+          },
+          include: { user: true, project: true },
+          orderBy: { createdAt: 'desc' }
+        }).catch(() => []),
+        prisma.activityLog.aggregate({
+          _avg: { productivityScore: true },
+          where: {
+            user: { companyId: company.id },
+            createdAt: { gte: today }
+          }
+        }).catch(() => ({ _avg: { productivityScore: null } })),
+        prisma.activityLog.findMany({
+          where: {
+            user: { companyId: company.id },
+            createdAt: { gte: today }
+          },
+          select: { activeApps: true, userId: true, createdAt: true },
+          orderBy: { createdAt: 'desc' },
+          take: 100
+        }).catch(() => []),
+        prisma.screenshot.findMany({
+          where: {
+            user: { companyId: company.id },
+            createdAt: { gte: today }
+          },
+          include: { user: true },
+          orderBy: { createdAt: 'desc' },
+          take: 4
+        }).catch(() => [])
+      ]);
+
+      timeEntriesToday = entries || [];
+      avgActivity = activityAgg?._avg?.productivityScore 
+        ? Math.round(activityAgg._avg.productivityScore) 
+        : 0;
+      activitiesToday = activities || [];
+      screenshotsToday = screenshots || [];
     }
-  });
+  } catch (err) {
+    console.error('Failed to load dashboard data:', err);
+  }
 
-  if (!company) return null;
+  if (!company) {
+    company = {
+      name: 'Sigma Workspace',
+      paidSeats: 0,
+      users: [],
+      projects: []
+    };
+  }
 
-  const employees = company.users.filter(u => u.role !== 'SUPERADMIN');
+  const employees = (company.users || []).filter((u: any) => u.role !== 'SUPERADMIN');
 
-  // Calculate Today's stats
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const timeEntriesToday = await prisma.timeEntry.findMany({
-    where: {
-      user: { companyId: company.id },
-      createdAt: { gte: today }
-    },
-    include: { user: true, project: true },
-    orderBy: { createdAt: 'desc' }
-  });
-  
   let totalSecondsToday = 0;
-  timeEntriesToday.forEach(entry => {
-    if (entry.duration !== null) {
+  (timeEntriesToday || []).forEach(entry => {
+    if (entry.duration !== null && entry.duration !== undefined) {
       totalSecondsToday += entry.duration;
-    } else {
+    } else if (entry.startTime) {
       let ongoing = Math.floor((Date.now() - new Date(entry.startTime).getTime()) / 1000);
-      if (ongoing > 24 * 3600) ongoing = 0;
+      if (ongoing > 24 * 3600 || isNaN(ongoing)) ongoing = 0;
       totalSecondsToday += ongoing;
     }
-  });
-  
-  const activityAgg = await prisma.activityLog.aggregate({
-    _avg: { productivityScore: true },
-    where: {
-      user: { companyId: company.id },
-      createdAt: { gte: today }
-    }
-  });
-  
-  const avgActivity = activityAgg._avg.productivityScore 
-    ? Math.round(activityAgg._avg.productivityScore) 
-    : 0;
-
-  // Sample the last 150 logs for apps to prevent Cloudflare 1102 CPU limits
-  const activitiesToday = await prisma.activityLog.findMany({
-    where: {
-      user: { companyId: company.id },
-      createdAt: { gte: today }
-    },
-    select: { activeApps: true, userId: true, createdAt: true },
-    orderBy: { createdAt: 'desc' },
-    take: 150
-  });
-
-  const screenshotsToday = await prisma.screenshot.findMany({
-    where: {
-      user: { companyId: company.id },
-      createdAt: { gte: today }
-    },
-    include: { user: true },
-    orderBy: { createdAt: 'desc' },
-    take: 4
   });
 
   // Aggregate Company-wide Top Active Apps (Sampled)
   const globalAppTimes: Record<string, number> = {};
-  activitiesToday.forEach(log => {
+  (activitiesToday || []).forEach(log => {
     try {
       const apps = JSON.parse(log.activeApps || '[]');
       apps.forEach((a: { name: string; duration: number }) => {
@@ -114,19 +133,19 @@ export default async function CompanyAdminDashboard() {
     .slice(0, 5);
 
   // Calculate per-employee stats for today
-  const employeeStats = employees.map(emp => {
-    const empEntries = timeEntriesToday.filter(e => e.userId === emp.id);
+  const employeeStats = employees.map((emp: any) => {
+    const empEntries = (timeEntriesToday || []).filter(e => e.userId === emp.id);
     let empSeconds = 0;
     empEntries.forEach(e => {
-      if (e.duration !== null) {
+      if (e.duration !== null && e.duration !== undefined) {
         empSeconds += e.duration;
-      } else {
+      } else if (e.startTime) {
         let ongoing = Math.floor((Date.now() - new Date(e.startTime).getTime()) / 1000);
-        if (ongoing > 24 * 3600) ongoing = 0;
+        if (ongoing > 24 * 3600 || isNaN(ongoing)) ongoing = 0;
         empSeconds += ongoing;
       }
     });
-    const empLatestActivity = activitiesToday.find(a => a.userId === emp.id);
+    const empLatestActivity = (activitiesToday || []).find(a => a.userId === emp.id);
     
     // Check if active in the last 10 minutes
     const isRecentlyActive = empLatestActivity && 
@@ -304,24 +323,27 @@ export default async function CompanyAdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {timeEntriesToday.slice(0, 6).map(entry => (
-                  <tr key={entry.id}>
-                    <td style={{ padding: '0.85rem 0', color: '#0f172a', fontSize: '0.875rem', borderBottom: '1px solid #f1f5f9' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                        <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem' }}>
-                          {(entry.user.name || entry.user.email).substring(0, 2).toUpperCase()}
+                {timeEntriesToday.slice(0, 6).map(entry => {
+                  const userName = entry.user?.name || entry.user?.email || 'User';
+                  return (
+                    <tr key={entry.id}>
+                      <td style={{ padding: '0.85rem 0', color: '#0f172a', fontSize: '0.875rem', borderBottom: '1px solid #f1f5f9' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                          <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem' }}>
+                            {userName.substring(0, 2).toUpperCase()}
+                          </div>
+                          <span style={{ fontWeight: 600 }}>{userName}</span>
                         </div>
-                        <span style={{ fontWeight: 600 }}>{entry.user.name || entry.user.email}</span>
-                      </div>
-                    </td>
-                    <td style={{ padding: '0.85rem 0', color: '#64748b', fontSize: '0.8125rem', borderBottom: '1px solid #f1f5f9' }}>
-                      {formatClockTime(entry.startTime)} {entry.endTime ? `- ${formatClockTime(entry.endTime)}` : '(Tracking)'}
-                    </td>
-                    <td style={{ textAlign: 'right', padding: '0.85rem 0', color: '#0f172a', fontSize: '0.875rem', fontWeight: 600, borderBottom: '1px solid #f1f5f9' }}>
-                      {entry.endTime ? formatDuration(entry.duration || 0) : <span style={styles.badge('#dbeafe', '#1e40af')}>Active</span>}
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td style={{ padding: '0.85rem 0', color: '#64748b', fontSize: '0.8125rem', borderBottom: '1px solid #f1f5f9' }}>
+                        {formatClockTime(entry.startTime)} {entry.endTime ? `- ${formatClockTime(entry.endTime)}` : '(Tracking)'}
+                      </td>
+                      <td style={{ textAlign: 'right', padding: '0.85rem 0', color: '#0f172a', fontSize: '0.875rem', fontWeight: 600, borderBottom: '1px solid #f1f5f9' }}>
+                        {entry.endTime ? formatDuration(entry.duration || 0) : <span style={styles.badge('#dbeafe', '#1e40af')}>Active</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
                 {timeEntriesToday.length === 0 && (
                   <tr>
                     <td colSpan={3} style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8', fontSize: '0.875rem' }}>
@@ -440,15 +462,18 @@ export default async function CompanyAdminDashboard() {
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                {screenshotsToday.map(s => (
-                  <div key={s.id} style={{ borderRadius: '8px', border: '1px solid #e2e8f0', overflow: 'hidden', backgroundColor: '#f8fafc' }}>
-                    <img src={s.imageUrl} alt="Screenshot" style={{ width: '100%', height: '90px', objectFit: 'cover', display: 'block' }} />
-                    <div style={{ padding: '0.4rem 0.5rem', fontSize: '0.7rem', color: '#64748b', display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80px' }}>{s.user.name || s.user.email}</span>
-                      <span>{formatClockTime(s.createdAt)}</span>
+                {screenshotsToday.map(s => {
+                  const userName = s.user?.name || s.user?.email || 'User';
+                  return (
+                    <div key={s.id} style={{ borderRadius: '8px', border: '1px solid #e2e8f0', overflow: 'hidden', backgroundColor: '#f8fafc' }}>
+                      <img src={s.imageUrl} alt="Screenshot" style={{ width: '100%', height: '90px', objectFit: 'cover', display: 'block' }} />
+                      <div style={{ padding: '0.4rem 0.5rem', fontSize: '0.7rem', color: '#64748b', display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80px' }}>{userName}</span>
+                        <span>{formatClockTime(s.createdAt)}</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

@@ -11,14 +11,25 @@ import { ImageUploadForm, ChangePasswordForm } from '@/components/SettingsForms'
 export default async function SettingsPage() {
   const session = await getSession();
   
-  const company = await prisma.company.findFirst({
-    where: { name: { not: 'Superadmin HQ' } },
-    include: {
-      projects: { orderBy: { createdAt: 'desc' } }
-    }
-  });
+  let company: any = null;
+  try {
+    company = await prisma.company.findFirst({
+      where: { name: { not: 'Superadmin HQ' } },
+      include: {
+        projects: { orderBy: { createdAt: 'desc' } }
+      }
+    });
+  } catch (err) {
+    console.error('Failed to load settings company:', err);
+  }
 
-  if (!company || !session?.user?.id) return null;
+  if (!company) {
+    company = {
+      id: '',
+      idleTimeoutMinutes: 10,
+      projects: []
+    };
+  }
 
   const cardStyle = {
     backgroundColor: 'white',

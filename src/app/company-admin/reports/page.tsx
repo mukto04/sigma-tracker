@@ -40,14 +40,26 @@ export default async function ReportsPage({
   const [ty, tm, td] = toStr.split('-').map(Number);
   const toDate = new Date(ty, tm - 1, td, 23, 59, 59, 999);
 
-  const company = await prisma.company.findFirst({
-    where: { name: { not: 'Superadmin HQ' } },
-    include: {
-      users: { where: { role: { not: 'SUPERADMIN' } } }
-    }
-  });
+  let company: any = null;
+  try {
+    company = await prisma.company.findFirst({
+      where: { name: { not: 'Superadmin HQ' } },
+      include: {
+        users: {
+          orderBy: { name: 'asc' }
+        }
+      }
+    });
+  } catch (err) {
+    console.error('Failed to load reports company:', err);
+  }
 
-  if (!company) return null;
+  if (!company) {
+    company = {
+      id: '',
+      users: []
+    };
+  }
 
   // Fetch all data in date range for this company
   const timeEntries = await prisma.timeEntry.findMany({

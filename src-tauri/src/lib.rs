@@ -292,6 +292,17 @@ mod commands {
         state.is_tracking.store(false, Ordering::Relaxed);
         Ok(true)
     }
+
+    #[tauri::command]
+    pub fn show_notification(app: tauri::AppHandle, title: String, body: String) -> Result<bool, String> {
+        use tauri_plugin_notification::NotificationExt;
+        let _ = app.notification()
+            .builder()
+            .title(title)
+            .body(body)
+            .show();
+        Ok(true)
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -314,6 +325,7 @@ pub fn run() {
             commands::get_activity_stats,
             commands::start_tracking,
             commands::stop_tracking,
+            commands::show_notification,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

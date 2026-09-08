@@ -35,14 +35,24 @@ export default async function CompanyAdminTimesheetsPage({
   const query = await searchParams;
   const weekOffset = parseInt(query.week || '0', 10);
 
-  const company = await prisma.company.findFirst({
-    where: { name: { not: 'Superadmin HQ' } },
-    include: { users: true },
-  });
+  let company: any = null;
+  try {
+    company = await prisma.company.findFirst({
+      where: { name: { not: 'Superadmin HQ' } },
+      include: { users: true },
+    });
+  } catch (err) {
+    console.error('Failed to load timesheets company:', err);
+  }
 
-  if (!company) return null;
+  if (!company) {
+    company = {
+      id: '',
+      users: []
+    };
+  }
 
-  const employees = company.users.filter(u => u.role !== 'SUPERADMIN');
+  const employees = (company.users || []).filter((u: any) => u.role !== 'SUPERADMIN');
 
   // Compute Monday of the selected week
   const now = new Date();

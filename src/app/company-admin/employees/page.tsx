@@ -7,19 +7,30 @@ export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 export default async function EmployeesPage() {
-  const company = await prisma.company.findFirst({
-    where: { name: { not: 'Superadmin HQ' } },
-    include: {
-      users: {
-        select: { id: true, name: true, email: true, role: true, createdAt: true },
-        orderBy: { createdAt: 'asc' }
+  let company: any = null;
+  try {
+    company = await prisma.company.findFirst({
+      where: { name: { not: 'Superadmin HQ' } },
+      include: {
+        users: {
+          select: { id: true, name: true, email: true, role: true, createdAt: true },
+          orderBy: { createdAt: 'asc' }
+        }
       }
-    }
-  });
+    });
+  } catch (err) {
+    console.error('Failed to load employees:', err);
+  }
 
-  if (!company) return null;
+  if (!company) {
+    company = {
+      id: '',
+      paidSeats: 0,
+      users: []
+    };
+  }
 
-  const employees = company.users.filter(u => u.role !== 'SUPERADMIN');
+  const employees = (company.users || []).filter((u: any) => u.role !== 'SUPERADMIN');
 
   const styles = {
     header: {

@@ -15,14 +15,24 @@ export default async function CompanyAdminScreenshotsPage({
   const range = query.range || 'today';
   const selectedUserId = query.userId || '';
 
-  const company = await prisma.company.findFirst({
-    where: { name: { not: 'Superadmin HQ' } },
-    include: { users: true },
-  });
+  let company: any = null;
+  try {
+    company = await prisma.company.findFirst({
+      where: { name: { not: 'Superadmin HQ' } },
+      include: { users: true },
+    });
+  } catch (err) {
+    console.error('Failed to load screenshots company:', err);
+  }
 
-  if (!company) return null;
+  if (!company) {
+    company = {
+      id: '',
+      users: []
+    };
+  }
 
-  const employees = company.users.filter(u => u.role !== 'SUPERADMIN');
+  const employees = (company.users || []).filter((u: any) => u.role !== 'SUPERADMIN');
 
   // Compute date range
   const now = new Date();
