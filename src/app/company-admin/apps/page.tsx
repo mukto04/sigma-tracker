@@ -66,31 +66,40 @@ export default async function CompanyAdminAppsPage({
     fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29, 0, 0, 0, 0);
   }
 
-  // Fetch all activity logs in range
-  const logs = await prisma.activityLog.findMany({
-    where: {
-      user: { companyId: company.id },
-      createdAt: { gte: fromDate, lte: toDate },
-    },
-    include: { user: true },
-  });
+  // Fetch all activity logs in range safely
+  let logs: any[] = [];
+  try {
+    if (company.id) {
+      logs = await prisma.activityLog.findMany({
+        where: {
+          user: { companyId: company.id },
+          createdAt: { gte: fromDate, lte: toDate },
+        },
+        include: { user: true },
+        take: 500,
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+  } catch (err) {
+    console.error('Failed to load activity logs:', err);
+  }
 
   // Aggregate apps
   interface AppStat {
     name: string;
     totalSeconds: number;
-    userMap: Record<string, { user: typeof company.users[0]; seconds: number }>;
+    userMap: Record<string, { user: any; seconds: number }>;
   }
 
   const appMap: Record<string, AppStat> = {};
   let totalCompanySeconds = 0;
 
-  logs.forEach(log => {
+  (logs || []).forEach(log => {
     try {
       const apps = JSON.parse(log.activeApps || '[]');
       if (Array.isArray(apps)) {
         apps.forEach((a: { name: string; duration: number }) => {
-          if (!a.name) return;
+          if (!a || !a.name) return;
           const duration = a.duration || 0;
           totalCompanySeconds += duration;
 
@@ -105,13 +114,14 @@ export default async function CompanyAdminAppsPage({
           appMap[a.name].totalSeconds += duration;
 
           if (log.user) {
-            if (!appMap[a.name].userMap[log.user.id]) {
-              appMap[a.name].userMap[log.user.id] = {
+            const uId = log.user.id || 'unknown';
+            if (!appMap[a.name].userMap[uId]) {
+              appMap[a.name].userMap[uId] = {
                 user: log.user,
                 seconds: 0,
               };
             }
-            appMap[a.name].userMap[log.user.id].seconds += duration;
+            appMap[a.name].userMap[uId].seconds += duration;
           }
         });
       }
@@ -123,7 +133,7 @@ export default async function CompanyAdminAppsPage({
     .map((app, idx) => ({
       ...app,
       color: colorPalette[idx % colorPalette.length],
-      code: app.name.substring(0, 2).toUpperCase(),
+      code: (app.name || 'AP').substring(0, 2).toUpperCase(),
       percentage: totalCompanySeconds > 0 ? ((app.totalSeconds / totalCompanySeconds) * 100).toFixed(1) : '0',
       users: Object.values(app.userMap).sort((a, b) => b.seconds - a.seconds),
     }));
@@ -284,30 +294,35 @@ export default async function CompanyAdminAppsPage({
                 {/* Users Avatars */}
                 <td style={{ padding: '1rem 1.25rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                    {app.users.map(({ user, seconds }) => (
-                      <span
-                        key={user.id}
-                        title={`${user.name || user.email}: ${formatDuration(seconds)}`}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.35rem',
-                          backgroundColor: '#f8fafc',
-                          border: '1px solid #e2e8f0',
-                          borderRadius: '6px',
-                          padding: '0.2rem 0.5rem',
-                          fontSize: '0.75rem',
-                          color: '#334155',
-                          fontWeight: 500,
-                        }}
-                      >
-                        <span style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#3b82f6', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.625rem', fontWeight: 700 }}>
-                          {(user.name || user.email).substring(0, 1).toUpperCase()}
+                    {app.users.map(({ user, seconds }) => {
+                      const displayName = user?.name || (user?.email ? user.email.split('@')[0] : 'User');
+                      const fullName = user?.name || user?.email || 'User';
+                      const initial = (user?.name || user?.email || 'U').substring(0, 1).toUpperCase();
+                      return (
+                        <span
+                          key={user?.id || Math.random()}
+                          title={`${fullName}: ${formatDuration(seconds)}`}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.35rem',
+                            backgroundColor: '#f8fafc',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '6px',
+                            padding: '0.2rem 0.5rem',
+                            fontSize: '0.75rem',
+                            color: '#334155',
+                            fontWeight: 500,
+                          }}
+                        >
+                          <span style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#3b82f6', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.625rem', fontWeight: 700 }}>
+                            {initial}
+                          </span>
+                          <span>{displayName}</span>
+                          <span style={{ color: '#94a3b8', fontSize: '0.7rem' }}>({formatDuration(seconds)})</span>
                         </span>
-                        <span>{user.name || user.email.split('@')[0]}</span>
-                        <span style={{ color: '#94a3b8', fontSize: '0.7rem' }}>({formatDuration(seconds)})</span>
-                      </span>
-                    ))}
+                      );
+                    })}
                   </div>
                 </td>
               </tr>

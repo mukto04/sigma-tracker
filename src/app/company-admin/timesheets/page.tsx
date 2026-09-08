@@ -247,7 +247,7 @@ export default async function CompanyAdminTimesheetsPage({
                 <td style={{ padding: '0.85rem 1.25rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                     <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8125rem' }}>
-                      {(user.name || user.email).substring(0, 2).toUpperCase()}
+                      {(user?.name || user?.email || 'EM').substring(0, 2).toUpperCase()}
                     </div>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: '0.875rem', color: '#0f172a' }}>

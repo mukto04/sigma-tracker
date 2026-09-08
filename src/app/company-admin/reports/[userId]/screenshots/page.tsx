@@ -88,11 +88,11 @@ export default async function EmployeeScreenshotsPage({
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontWeight: 800, fontSize: '1.25rem',
           }}>
-            {(user.name || user.email).substring(0, 2).toUpperCase()}
+            {(user?.name || user?.email || 'EM').substring(0, 2).toUpperCase()}
           </div>
           <div>
             <h1 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
-              {user.name || user.email}&apos;s Screenshots
+              {user?.name || user?.email || 'Employee'}&apos;s Screenshots
             </h1>
             <p style={{ color: '#64748b', fontSize: '0.875rem', margin: '0.25rem 0 0' }}>
               Showing screenshots from <strong>{fromStr}</strong> to <strong>{toStr}</strong>

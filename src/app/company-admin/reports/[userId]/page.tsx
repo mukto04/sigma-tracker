@@ -151,10 +151,10 @@ export default async function EmployeeReportPage({
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontWeight: 800, fontSize: '1.25rem',
         }}>
-          {(user.name || user.email).substring(0,2).toUpperCase()}
+          {(user?.name || user?.email || 'EM').substring(0, 2).toUpperCase()}
         </div>
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>{user.name || user.email}</h1>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>{user?.name || user?.email || 'Employee'}</h1>
           <p style={{ color: '#64748b', fontSize: '0.875rem', margin: '0.25rem 0 0' }}>
             Report: <strong>{fromStr}</strong> → <strong>{toStr}</strong>
           </p>

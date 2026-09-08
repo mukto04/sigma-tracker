@@ -168,7 +168,7 @@ export default async function ReportsPage({
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontWeight: 700, fontSize: '0.875rem', flexShrink: 0
                     }}>
-                      {(user.name || user.email).substring(0,2).toUpperCase()}
+                      {(user?.name || user?.email || 'EM').substring(0, 2).toUpperCase()}
                     </div>
                     <div>
                       <div style={{ fontWeight: 600 }}>{user.name || '—'}</div>

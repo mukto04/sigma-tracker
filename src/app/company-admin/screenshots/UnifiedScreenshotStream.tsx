@@ -129,10 +129,10 @@ export function UnifiedScreenshotStream({ screenshots }: { screenshots: Screensh
                     flexShrink: 0,
                   }}
                 >
-                  {(item.user.name || item.user.email).substring(0, 2).toUpperCase()}
+                  {(item.user?.name || item.user?.email || 'User').substring(0, 2).toUpperCase()}
                 </div>
                 <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#0f172a', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                  {item.user.name || item.user.email.split('@')[0]}
+                  {item.user?.name || (item.user?.email ? item.user.email.split('@')[0] : 'User')}
                 </div>
               </div>
 
@@ -180,10 +180,10 @@ export function UnifiedScreenshotStream({ screenshots }: { screenshots: Screensh
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#2563eb', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8125rem' }}>
-                {(activeItem.user.name || activeItem.user.email).substring(0, 2).toUpperCase()}
+                {(activeItem.user?.name || activeItem.user?.email || 'User').substring(0, 2).toUpperCase()}
               </div>
               <div>
-                <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>{activeItem.user.name || activeItem.user.email}</div>
+                <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>{activeItem.user?.name || activeItem.user?.email || 'User'}</div>
                 <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
                   Captured at: {new Date(activeItem.createdAt).toLocaleString()}
                 </div>

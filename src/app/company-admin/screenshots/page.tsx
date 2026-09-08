@@ -156,6 +156,8 @@ export default async function CompanyAdminScreenshotsPage({
 
         {employees.map(emp => {
           const isSelected = selectedUserId === emp.id;
+          const empDisplayName = emp?.name || (emp?.email ? emp.email.split('@')[0] : 'Employee');
+          const empInitial = (emp?.name || emp?.email || 'E').substring(0, 1).toUpperCase();
           return (
             <Link
               key={emp.id}
@@ -176,9 +178,9 @@ export default async function CompanyAdminScreenshotsPage({
               }}
             >
               <span style={{ width: '18px', height: '18px', borderRadius: '50%', backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : '#eff6ff', color: isSelected ? 'white' : '#2563eb', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.625rem', fontWeight: 700 }}>
-                {(emp.name || emp.email).substring(0, 1).toUpperCase()}
+                {empInitial}
               </span>
-              <span>{emp.name || emp.email.split('@')[0]}</span>
+              <span>{empDisplayName}</span>
             </Link>
           );
         })}
