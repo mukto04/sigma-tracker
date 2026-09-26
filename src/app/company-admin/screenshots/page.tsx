@@ -2,6 +2,7 @@ import React from 'react';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import { UnifiedScreenshotStream } from './UnifiedScreenshotStream';
+import { requireAdminCompany } from '@/lib/company-admin';
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
@@ -14,25 +15,14 @@ export default async function CompanyAdminScreenshotsPage({
   const query = await searchParams;
   const range = query.range || 'today';
   const selectedUserId = query.userId || '';
-
-  let company: any = null;
-  try {
-    company = await prisma.company.findFirst({
-      where: { name: { not: 'Superadmin HQ' } },
-      include: { users: true },
-    });
-  } catch (err) {
-    console.error('Failed to load screenshots company:', err);
-  }
-
-  if (!company) {
-    company = {
-      id: '',
-      users: []
-    };
-  }
-
-  const employees = (company.users || []).filter((u: any) => u.role !== 'SUPERADMIN');
+  const company = await requireAdminCompany('/company-admin/screenshots');
+  const employees = await prisma.user.findMany({
+    where: { companyId: company.companyId, role: { not: 'SUPERADMIN' } },
+    select: { id: true, name: true, email: true },
+    orderBy: { name: 'asc' },
+    take: 200,
+  });
+  const employeeIds = employees.map((employee) => employee.id);
 
   // Compute date range
   const now = new Date();
@@ -45,13 +35,16 @@ export default async function CompanyAdminScreenshotsPage({
   } else if (range === '7days') {
     fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6, 0, 0, 0, 0);
   } else if (range === 'all') {
-    fromDate = undefined;
-    toDate = undefined;
+    fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29, 0, 0, 0, 0);
+    toDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
   }
 
   // Build screenshot where clause
-  const whereClause: any = {
-    user: { companyId: company.id },
+  const whereClause: {
+    userId: { in: string[] } | string;
+    createdAt?: { gte?: Date; lte?: Date };
+  } = {
+    userId: { in: employeeIds },
   };
 
   if (fromDate || toDate) {
@@ -60,7 +53,7 @@ export default async function CompanyAdminScreenshotsPage({
     if (toDate) whereClause.createdAt.lte = toDate;
   }
 
-  if (selectedUserId) {
+  if (selectedUserId && employeeIds.includes(selectedUserId)) {
     whereClause.userId = selectedUserId;
   }
 
@@ -102,7 +95,7 @@ export default async function CompanyAdminScreenshotsPage({
         <div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>Company Screenshots Feed</h1>
           <p style={{ color: '#64748b', margin: '0.25rem 0 0', fontSize: '0.875rem' }}>
-            Unified real-time desktop screen captures for {company.name}
+            Unified real-time desktop screen captures for {company.companyName}
           </p>
         </div>
 
@@ -112,7 +105,7 @@ export default async function CompanyAdminScreenshotsPage({
             { id: 'today', label: 'Today' },
             { id: 'yesterday', label: 'Yesterday' },
             { id: '7days', label: 'Last 7 Days' },
-            { id: 'all', label: 'All Time' },
+            { id: 'all', label: 'Last 30 Days' },
           ].map(tab => (
             <Link
               key={tab.id}

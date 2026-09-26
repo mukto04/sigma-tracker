@@ -1,6 +1,7 @@
 import React from 'react';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
+import { requireAdminCompany } from '@/lib/company-admin';
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
@@ -18,44 +19,84 @@ function formatClockTime(date: Date) {
 }
 
 export default async function CompanyAdminDashboard() {
-  let company: any = null;
-  let timeEntriesToday: any[] = [];
+  const companyContext = await requireAdminCompany('/company-admin');
+  let company = {
+    name: companyContext.companyName,
+    paidSeats: 0,
+    users: [] as { id: string; name: string | null; email: string }[],
+    projects: [] as { id: string }[],
+  };
+  let timeEntriesToday: {
+    id: string;
+    userId: string;
+    startTime: Date;
+    endTime: Date | null;
+    duration: number | null;
+    user: { name: string | null; email: string };
+    project: { name: string } | null;
+  }[] = [];
   let avgActivity = 0;
-  let activitiesToday: any[] = [];
-  let screenshotsToday: any[] = [];
+  let activitiesToday: { activeApps: string; userId: string; createdAt: Date }[] = [];
+  let screenshotsToday: {
+    id: string;
+    imageUrl: string;
+    createdAt: Date;
+    user: { name: string | null; email: string };
+  }[] = [];
 
   try {
-    company = await prisma.company.findFirst({
-      where: { name: { not: 'Superadmin HQ' } },
-      include: {
-        users: true,
-        projects: true
-      }
+    const loadedCompany = await prisma.company.findUnique({
+      where: { id: companyContext.companyId },
+      select: {
+        name: true,
+        paidSeats: true,
+        users: {
+          where: { role: { not: 'SUPERADMIN' } },
+          select: { id: true, name: true, email: true },
+          orderBy: { name: 'asc' },
+          take: 200,
+        },
+        projects: {
+          select: { id: true },
+          take: 200,
+        },
+      },
     });
 
-    if (company) {
+    if (loadedCompany) {
+      company = loadedCompany;
+      const employeeIds = loadedCompany.users.map((user) => user.id);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
       const [entries, activityAgg, activities, screenshots] = await Promise.all([
         prisma.timeEntry.findMany({
           where: {
-            user: { companyId: company.id },
-            createdAt: { gte: today }
+            userId: { in: employeeIds },
+            startTime: { gte: today }
           },
-          include: { user: true, project: true },
-          orderBy: { createdAt: 'desc' }
+          select: {
+            id: true,
+            userId: true,
+            startTime: true,
+            endTime: true,
+            duration: true,
+            user: { select: { name: true, email: true } },
+            project: { select: { name: true } },
+          },
+          orderBy: { startTime: 'desc' },
+          take: 200,
         }).catch(() => []),
         prisma.activityLog.aggregate({
           _avg: { productivityScore: true },
           where: {
-            user: { companyId: company.id },
+            userId: { in: employeeIds },
             createdAt: { gte: today }
           }
         }).catch(() => ({ _avg: { productivityScore: null } })),
         prisma.activityLog.findMany({
           where: {
-            user: { companyId: company.id },
+            userId: { in: employeeIds },
             createdAt: { gte: today }
           },
           select: { activeApps: true, userId: true, createdAt: true },
@@ -64,10 +105,15 @@ export default async function CompanyAdminDashboard() {
         }).catch(() => []),
         prisma.screenshot.findMany({
           where: {
-            user: { companyId: company.id },
+            userId: { in: employeeIds },
             createdAt: { gte: today }
           },
-          include: { user: true },
+          select: {
+            id: true,
+            imageUrl: true,
+            createdAt: true,
+            user: { select: { name: true, email: true } },
+          },
           orderBy: { createdAt: 'desc' },
           take: 4
         }).catch(() => [])
@@ -84,16 +130,7 @@ export default async function CompanyAdminDashboard() {
     console.error('Failed to load dashboard data:', err);
   }
 
-  if (!company) {
-    company = {
-      name: 'Sigma Workspace',
-      paidSeats: 0,
-      users: [],
-      projects: []
-    };
-  }
-
-  const employees = (company.users || []).filter((u: any) => u.role !== 'SUPERADMIN');
+  const employees = company.users || [];
 
   let totalSecondsToday = 0;
   (timeEntriesToday || []).forEach(entry => {
@@ -116,7 +153,7 @@ export default async function CompanyAdminDashboard() {
           globalAppTimes[a.name] = (globalAppTimes[a.name] || 0) + (a.duration || 0);
         }
       });
-    } catch (e) {}
+    } catch {}
   });
 
   const totalAppSeconds = Object.values(globalAppTimes).reduce((a, b) => a + b, 0);
@@ -133,7 +170,7 @@ export default async function CompanyAdminDashboard() {
     .slice(0, 5);
 
   // Calculate per-employee stats for today
-  const employeeStats = employees.map((emp: any) => {
+  const employeeStats = employees.map((emp) => {
     const empEntries = (timeEntriesToday || []).filter(e => e.userId === emp.id);
     let empSeconds = 0;
     empEntries.forEach(e => {

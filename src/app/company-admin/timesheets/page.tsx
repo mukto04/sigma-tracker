@@ -2,6 +2,7 @@ import React from 'react';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import { ExportCsvButton } from './ExportCsvButton';
+import { requireAdminCompany } from '@/lib/company-admin';
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
@@ -34,25 +35,13 @@ export default async function CompanyAdminTimesheetsPage({
 }) {
   const query = await searchParams;
   const weekOffset = parseInt(query.week || '0', 10);
-
-  let company: any = null;
-  try {
-    company = await prisma.company.findFirst({
-      where: { name: { not: 'Superadmin HQ' } },
-      include: { users: true },
-    });
-  } catch (err) {
-    console.error('Failed to load timesheets company:', err);
-  }
-
-  if (!company) {
-    company = {
-      id: '',
-      users: []
-    };
-  }
-
-  const employees = (company.users || []).filter((u: any) => u.role !== 'SUPERADMIN');
+  const company = await requireAdminCompany('/company-admin/timesheets');
+  const employees = await prisma.user.findMany({
+    where: { companyId: company.companyId, role: { not: 'SUPERADMIN' } },
+    select: { id: true, name: true, email: true },
+    orderBy: { name: 'asc' },
+    take: 200,
+  });
 
   // Compute Monday of the selected week
   const now = new Date();
@@ -77,11 +66,20 @@ export default async function CompanyAdminTimesheetsPage({
   // Fetch all time entries in this week
   const timeEntries = await prisma.timeEntry.findMany({
     where: {
-      user: { companyId: company.id },
+      userId: { in: employees.map((employee) => employee.id) },
       startTime: { gte: monday, lte: sunday },
     },
-    include: { user: true, project: true },
+    select: {
+      id: true,
+      userId: true,
+      startTime: true,
+      endTime: true,
+      duration: true,
+      user: { select: { name: true, email: true } },
+      project: { select: { name: true } },
+    },
     orderBy: { startTime: 'asc' },
+    take: 1000,
   });
 
   // Map employee weekly breakdown
@@ -141,7 +139,7 @@ export default async function CompanyAdminTimesheetsPage({
         <div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>Team Timesheets</h1>
           <p style={{ color: '#64748b', margin: '0.25rem 0 0', fontSize: '0.875rem' }}>
-            Weekly hours breakdown and automated payroll export for {company.name}
+            Weekly hours breakdown and automated payroll export for {company.companyName}
           </p>
         </div>
 

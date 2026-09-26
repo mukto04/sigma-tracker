@@ -2,6 +2,7 @@ import React from 'react';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import DateFilter from './DateFilter';
+import { clampDateRange, requireAdminCompany } from '@/lib/company-admin';
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
@@ -35,56 +36,50 @@ export default async function ReportsPage({
   const toStr = params.to || todayStr;
 
   const [fy, fm, fd] = fromStr.split('-').map(Number);
-  const fromDate = new Date(fy, fm - 1, fd, 0, 0, 0, 0);
-
   const [ty, tm, td] = toStr.split('-').map(Number);
-  const toDate = new Date(ty, tm - 1, td, 23, 59, 59, 999);
+  let toDate = new Date(ty, tm - 1, td, 23, 59, 59, 999);
+  let fromDate = new Date(fy, fm - 1, fd, 0, 0, 0, 0);
+  ({ fromDate, toDate } = clampDateRange(fromDate, toDate));
 
-  let company: any = null;
-  try {
-    company = await prisma.company.findFirst({
-      where: { name: { not: 'Superadmin HQ' } },
-      include: {
-        users: {
-          orderBy: { name: 'asc' }
-        }
-      }
-    });
-  } catch (err) {
-    console.error('Failed to load reports company:', err);
-  }
-
-  if (!company) {
-    company = {
-      id: '',
-      users: []
-    };
-  }
+  const company = await requireAdminCompany('/company-admin/reports');
+  const users = await prisma.user.findMany({
+    where: { companyId: company.companyId, role: { not: 'SUPERADMIN' } },
+    select: { id: true, name: true, email: true },
+    orderBy: { name: 'asc' },
+    take: 200,
+  });
+  const userIds = users.map((user) => user.id);
 
   // Fetch all data in date range for this company
   const timeEntries = await prisma.timeEntry.findMany({
     where: {
-      user: { companyId: company.id },
+      userId: { in: userIds },
       startTime: { gte: fromDate, lte: toDate }
-    }
+    },
+    select: { userId: true, startTime: true, duration: true },
+    take: 5000,
   });
 
   const activities = await prisma.activityLog.findMany({
     where: {
-      user: { companyId: company.id },
+      userId: { in: userIds },
       createdAt: { gte: fromDate, lte: toDate }
-    }
+    },
+    select: { userId: true, productivityScore: true },
+    take: 5000,
   });
 
   const screenshots = await prisma.screenshot.findMany({
     where: {
-      user: { companyId: company.id },
+      userId: { in: userIds },
       createdAt: { gte: fromDate, lte: toDate }
-    }
+    },
+    select: { userId: true },
+    take: 5000,
   });
 
   // Build per-user report rows
-  const rows = company.users.map(user => {
+  const rows = users.map(user => {
     const userEntries = timeEntries.filter(e => e.userId === user.id);
     let totalSeconds = 0;
     userEntries.forEach(e => {

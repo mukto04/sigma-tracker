@@ -1,6 +1,7 @@
 import React from 'react';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
+import { requireAdminCompany } from '@/lib/company-admin';
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
@@ -15,13 +16,6 @@ function formatDuration(seconds: number) {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
-function getLocalDateStr(date: Date = new Date()) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
 const colorPalette = [
   '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899',
   '#06b6d4', '#6366f1', '#14b8a6', '#f97316', '#84cc16'
@@ -34,23 +28,13 @@ export default async function CompanyAdminAppsPage({
 }) {
   const query = await searchParams;
   const range = query.range || 'today';
-
-  let company: any = null;
-  try {
-    company = await prisma.company.findFirst({
-      where: { name: { not: 'Superadmin HQ' } },
-      include: { users: true },
-    });
-  } catch (err) {
-    console.error('Failed to load apps company:', err);
-  }
-
-  if (!company) {
-    company = {
-      id: '',
-      users: []
-    };
-  }
+  const company = await requireAdminCompany('/company-admin/apps');
+  const users = await prisma.user.findMany({
+    where: { companyId: company.companyId, role: { not: 'SUPERADMIN' } },
+    select: { id: true },
+    take: 200,
+  });
+  const userIds = users.map((user) => user.id);
 
   // Compute date range
   const now = new Date();
@@ -67,15 +51,21 @@ export default async function CompanyAdminAppsPage({
   }
 
   // Fetch all activity logs in range safely
-  let logs: any[] = [];
+  let logs: {
+    activeApps: string;
+    user: { id: string; name: string | null; email: string } | null;
+  }[] = [];
   try {
-    if (company.id) {
+    if (userIds.length > 0) {
       logs = await prisma.activityLog.findMany({
         where: {
-          user: { companyId: company.id },
+          userId: { in: userIds },
           createdAt: { gte: fromDate, lte: toDate },
         },
-        include: { user: true },
+        select: {
+          activeApps: true,
+          user: { select: { id: true, name: true, email: true } },
+        },
         take: 500,
         orderBy: { createdAt: 'desc' },
       });
@@ -88,7 +78,7 @@ export default async function CompanyAdminAppsPage({
   interface AppStat {
     name: string;
     totalSeconds: number;
-    userMap: Record<string, { user: any; seconds: number }>;
+    userMap: Record<string, { user: { id: string; name: string | null; email: string }; seconds: number }>;
   }
 
   const appMap: Record<string, AppStat> = {};
@@ -125,7 +115,7 @@ export default async function CompanyAdminAppsPage({
           }
         });
       }
-    } catch (e) {}
+    } catch {}
   });
 
   const appList = Object.values(appMap)

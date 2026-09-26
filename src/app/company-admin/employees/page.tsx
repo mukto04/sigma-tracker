@@ -2,35 +2,25 @@ import React from 'react';
 import { prisma } from '@/lib/prisma';
 import { AddEmployeeForm } from '../Forms';
 import ResetPasswordButton from './ResetPasswordButton';
+import { requireAdminCompany } from '@/lib/company-admin';
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 export default async function EmployeesPage() {
-  let company: any = null;
-  try {
-    company = await prisma.company.findFirst({
-      where: { name: { not: 'Superadmin HQ' } },
-      include: {
-        users: {
-          select: { id: true, name: true, email: true, role: true, createdAt: true },
-          orderBy: { createdAt: 'asc' }
-        }
-      }
-    });
-  } catch (err) {
-    console.error('Failed to load employees:', err);
-  }
-
-  if (!company) {
-    company = {
-      id: '',
-      paidSeats: 0,
-      users: []
-    };
-  }
-
-  const employees = (company.users || []).filter((u: any) => u.role !== 'SUPERADMIN');
+  const company = await requireAdminCompany('/company-admin/employees');
+  const [companyMeta, employees] = await Promise.all([
+    prisma.company.findUnique({
+      where: { id: company.companyId },
+      select: { paidSeats: true },
+    }),
+    prisma.user.findMany({
+      where: { companyId: company.companyId, role: { not: 'SUPERADMIN' } },
+      select: { id: true, name: true, email: true, role: true, createdAt: true },
+      orderBy: { createdAt: 'asc' },
+      take: 200,
+    }),
+  ]);
 
   const styles = {
     header: {
@@ -98,7 +88,7 @@ export default async function EmployeesPage() {
         <div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>Employees</h1>
           <p style={{ color: '#64748b', margin: '0.25rem 0 0', fontSize: '0.875rem' }}>
-            {employees.length} total — {company.paidSeats} seats purchased
+            {employees.length} total — {companyMeta?.paidSeats || 0} seats purchased
           </p>
         </div>
       </div>
@@ -170,7 +160,7 @@ export default async function EmployeesPage() {
           <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#0f172a', marginBottom: '1.25rem', marginTop: 0 }}>
             ➕ Add New Employee
           </h2>
-          <AddEmployeeForm companyId={company.id} />
+          <AddEmployeeForm companyId={company.companyId} />
         </div>
       </div>
     </div>
