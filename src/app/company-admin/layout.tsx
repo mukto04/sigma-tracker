@@ -1,6 +1,7 @@
 import React from 'react';
 import { prisma } from '@/lib/prisma';
 import { AdminSidebar } from './AdminSidebar';
+import { getSession } from '@/lib/auth';
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
@@ -10,20 +11,34 @@ export default async function CompanyAdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Fetch company data safely
-  let company: any = null;
+  let company: {
+    name: string;
+    plan: string;
+    logoUrl: string | null;
+  } | null = null;
+  let adminName = 'Admin';
+
   try {
-    company = await prisma.company.findFirst({
-      where: {
-        name: { not: 'Superadmin HQ' }
-      },
-      include: {
-        users: {
-          where: { role: 'ADMIN' },
-          select: { name: true, role: true }
-        }
-      }
-    });
+    const session = await getSession();
+    if (session?.user?.id) {
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: {
+          name: true,
+          email: true,
+          company: {
+            select: {
+              name: true,
+              plan: true,
+              logoUrl: true,
+            },
+          },
+        },
+      });
+
+      company = user?.company || null;
+      adminName = user?.name || user?.email || 'Admin';
+    }
   } catch (err) {
     console.error('Failed to load company in admin layout:', err);
   }
@@ -33,11 +48,8 @@ export default async function CompanyAdminLayout({
       name: 'Sigma Workspace',
       plan: 'Pro',
       logoUrl: null,
-      users: []
     };
   }
-
-  const adminName = company.users?.find((u: any) => u.role === 'ADMIN')?.name || 'Admin';
 
   return (
     <>

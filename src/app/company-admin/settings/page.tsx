@@ -3,6 +3,7 @@ import React from 'react';
 import { prisma } from '@/lib/prisma';
 import { IdleTimeoutForm } from '../IdleTimeoutForm';
 import { AddProjectForm } from '../Forms';
+import { redirect } from 'next/navigation';
 
 export const runtime = 'edge';
 
@@ -10,14 +11,40 @@ import { ImageUploadForm, ChangePasswordForm } from '@/components/SettingsForms'
 
 export default async function SettingsPage() {
   const session = await getSession();
+  if (!session?.user?.id) redirect('/login?callbackUrl=/company-admin/settings');
   
-  let company: any = null;
+  let company: {
+    id: string;
+    logoUrl: string | null;
+    idleTimeoutMinutes: number;
+    plan: string;
+    paidSeats: number;
+    subscriptionStatus: string;
+    projects: { id: string; name: string; description: string | null }[];
+  } | null = null;
   try {
-    company = await prisma.company.findFirst({
-      where: { name: { not: 'Superadmin HQ' } },
-      include: {
-        projects: { orderBy: { createdAt: 'desc' } }
-      }
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { companyId: true },
+    });
+
+    if (!user?.companyId) redirect('/login?callbackUrl=/company-admin/settings');
+
+    company = await prisma.company.findUnique({
+      where: { id: user.companyId },
+      select: {
+        id: true,
+        logoUrl: true,
+        idleTimeoutMinutes: true,
+        plan: true,
+        paidSeats: true,
+        subscriptionStatus: true,
+        projects: {
+          orderBy: { createdAt: 'desc' },
+          take: 100,
+          select: { id: true, name: true, description: true },
+        },
+      },
     });
   } catch (err) {
     console.error('Failed to load settings company:', err);
