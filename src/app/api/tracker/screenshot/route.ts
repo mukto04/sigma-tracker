@@ -1,37 +1,38 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getRequestContext } from '@cloudflare/next-on-pages';
+import { decodeDataImage, parseOfflineDate, pruneOldScreenshots, requireTrackerUser, type TrackerEnv } from '@/lib/tracker-api';
 
 export const runtime = 'edge';
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const body = await req.json() as {
+      userId?: string;
+      imageUrl?: string;
+      offlineCreatedAt?: string;
+    };
     const { userId, imageUrl } = body;
 
     if (!userId || !imageUrl) {
       return NextResponse.json({ error: 'Missing userId or imageUrl' }, { status: 400 });
     }
 
+    const auth = await requireTrackerUser(userId, req);
+    if ('error' in auth) return auth.error;
+
     let finalImageUrl = imageUrl;
+    const env = getRequestContext().env as TrackerEnv;
 
     if (imageUrl.startsWith('data:image')) {
-      const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, '');
-      
-      // Cloudflare R2 accepts ArrayBuffer, so we decode base64 to Uint8Array
-      const binaryString = atob(base64Data);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      
-      const filename = `screenshots/${userId}/${Date.now()}.jpg`;
+      const createdAt = parseOfflineDate(body.offlineCreatedAt);
+      const { bytes, extension, contentType } = decodeDataImage(imageUrl);
+      const filename = `screenshots/${userId}/${createdAt.getTime()}-${crypto.randomUUID()}.${extension}`;
 
-      const env = getRequestContext().env as any;
       if (!env.R2) throw new Error("R2 binding not found");
 
       await env.R2.put(filename, bytes.buffer, {
-        httpMetadata: { contentType: 'image/jpeg' },
+        httpMetadata: { contentType },
       });
 
       // Use our internal proxy endpoint so we don't need the user to setup a Public R2 Bucket domain
@@ -42,9 +43,11 @@ export async function POST(req: Request) {
       data: {
         userId,
         imageUrl: finalImageUrl,
-        ...(body.offlineCreatedAt ? { createdAt: new Date(body.offlineCreatedAt) } : {}),
+        createdAt: parseOfflineDate(body.offlineCreatedAt),
       },
     });
+
+    await pruneOldScreenshots(env, userId);
 
     return NextResponse.json({ success: true, screenshot });
   } catch (error) {

@@ -12,7 +12,8 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url);
-    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit') as string) : 20;
+    const rawLimit = searchParams.get('limit') ? parseInt(searchParams.get('limit') as string) : 20;
+    const limit = Math.min(100, Math.max(1, Number.isFinite(rawLimit) ? rawLimit : 20));
 
     const dateParam = searchParams.get('date');
     let targetDate = new Date();

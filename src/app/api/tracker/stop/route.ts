@@ -1,14 +1,20 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { parseOfflineDate, requireTrackerUser } from '@/lib/tracker-api';
+
+export const runtime = 'edge';
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const body = await req.json() as { timeEntryId?: string; offlineEndTime?: string };
     const { timeEntryId } = body;
 
     if (!timeEntryId) {
       return NextResponse.json({ error: 'Missing timeEntryId' }, { status: 400 });
     }
+
+    const auth = await requireTrackerUser(undefined, req);
+    if ('error' in auth) return auth.error;
 
     const timeEntry = await prisma.timeEntry.findUnique({
       where: { id: timeEntryId }
@@ -18,7 +24,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Time entry not found' }, { status: 404 });
     }
 
-    const endTime = body.offlineEndTime ? new Date(body.offlineEndTime) : new Date();
+    if (timeEntry.userId !== auth.user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const endTime = parseOfflineDate(body.offlineEndTime);
     const durationInSeconds = Math.floor((endTime.getTime() - timeEntry.startTime.getTime()) / 1000);
 
     if (durationInSeconds <= 0) {

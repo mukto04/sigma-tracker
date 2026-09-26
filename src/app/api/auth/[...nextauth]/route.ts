@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (pathname.endsWith('/login') || pathname.includes('credentials')) {
-    const body = await req.json();
+    const body = await req.json() as { email?: string; password?: string };
     const { email, password } = body;
 
     if (!email || !password) {
@@ -23,14 +23,10 @@ export async function POST(req: NextRequest) {
     }
 
     let isValid = false;
-    if (password === 'password123') {
-      isValid = true;
-    } else {
-      try {
-        isValid = await bcrypt.compare(password, user.password);
-      } catch (err) {
-        console.error("Bcrypt error:", err);
-      }
+    try {
+      isValid = await bcrypt.compare(password, user.password);
+    } catch (err) {
+      console.error("Bcrypt error:", err);
     }
 
     if (!isValid) {
@@ -48,10 +44,11 @@ export async function POST(req: NextRequest) {
       ok: true, 
       user: { id: user.id, email: user.email, name: user.name, role: user.role }
     });
+    const isHttps = req.nextUrl.protocol === 'https:';
     
     response.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,
-      secure: true,
+      secure: isHttps,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 30, // 30 days
       path: '/',
@@ -62,9 +59,10 @@ export async function POST(req: NextRequest) {
 
   if (pathname.endsWith('/logout') || pathname.endsWith('/signout')) {
     const response = NextResponse.json({ ok: true });
+    const isHttps = req.nextUrl.protocol === 'https:';
     response.cookies.set(SESSION_COOKIE, '', {
       httpOnly: true,
-      secure: true,
+      secure: isHttps,
       sameSite: 'lax',
       maxAge: 0,
       path: '/',

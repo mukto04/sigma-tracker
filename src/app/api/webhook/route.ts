@@ -1,45 +1,74 @@
 import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_12345', {
-  apiVersion: '2026-08-26.dahlia' as any,
-});
+export const runtime = 'edge';
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || 'whsec_12345';
+type StripeEvent = {
+  type?: string;
+  data?: {
+    object?: {
+      metadata?: {
+        companyName?: string;
+        email?: string;
+        employees?: string;
+      };
+    };
+  };
+};
+
+function toHex(buffer: ArrayBuffer) {
+  return [...new Uint8Array(buffer)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function verifyStripeSignature(body: string, signature: string | null, secret: string) {
+  if (!signature) return false;
+
+  const parts = Object.fromEntries(
+    signature.split(',').map((part) => {
+      const [key, value] = part.split('=');
+      return [key, value];
+    })
+  );
+
+  if (!parts.t || !parts.v1) return false;
+
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const digest = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`${parts.t}.${body}`));
+
+  return toHex(digest) === parts.v1;
+}
 
 export async function POST(req: Request) {
-  const body = await req.text();
-  const signature = req.headers.get('stripe-signature') as string;
-
-  let event: Stripe.Event;
-
-  try {
-    // In local dev without a real Stripe tunnel, this signature verification will fail
-    // We will bypass it for testing if NEXT_PUBLIC_ENV is 'development', but typically you'd use ngrok or Stripe CLI.
-    // For MVP, if it fails, we will fallback to processing it anyway IF it's a test payload.
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-  } catch (err: any) {
-    console.error(`Webhook Error: ${err.message}`);
-    // Fallback for local testing without valid signature (DO NOT DO IN PROD)
-    try {
-      event = JSON.parse(body);
-    } catch {
-      return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
-    }
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret || webhookSecret.includes('12345')) {
+    return NextResponse.json({ received: true, ignored: true });
   }
 
+  const body = await req.text();
+  const signature = req.headers.get('stripe-signature');
+  const isValid = await verifyStripeSignature(body, signature, webhookSecret);
+
+  if (!isValid) {
+    return NextResponse.json({ error: 'Invalid webhook signature' }, { status: 400 });
+  }
+
+  const event = JSON.parse(body) as StripeEvent;
+
   if (event.type === 'checkout.session.completed') {
-    const session = event.data.object as Stripe.Checkout.Session;
-    
-    const companyName = session.metadata?.companyName;
-    const email = session.metadata?.email;
-    const employees = parseInt(session.metadata?.employees || '1', 10);
+    const metadata = event.data?.object?.metadata;
+    const companyName = metadata?.companyName;
+    const email = metadata?.email;
+    const employees = Math.max(1, Math.min(500, parseInt(metadata?.employees || '1', 10)));
 
     if (companyName && email) {
       try {
-        // Create the Company
         const newCompany = await prisma.company.create({
           data: {
             name: companyName,
@@ -48,24 +77,20 @@ export async function POST(req: Request) {
             subscriptionStatus: 'Active',
             purchaseDate: new Date(),
             renewalDate: new Date(new Date().setMonth(new Date().getMonth() + 1)),
-          }
+          },
         });
 
-        // Hash a default password
-        const hashedPassword = await bcrypt.hash('password123', 10);
+        const hashedPassword = await bcrypt.hash(crypto.randomUUID(), 10);
 
-        // Create the Admin User
         await prisma.user.create({
           data: {
             name: 'Admin',
-            email: email,
+            email,
             password: hashedPassword,
             role: 'ADMIN',
             companyId: newCompany.id,
-          }
+          },
         });
-
-        console.log(`Created new company ${companyName} with ${employees} seats.`);
       } catch (error) {
         console.error('Error provisioning company from webhook:', error);
       }

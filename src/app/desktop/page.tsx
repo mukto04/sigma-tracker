@@ -295,6 +295,32 @@ export default function DesktopTracker() {
   };
   // ---------------------------
 
+  const compressScreenshot = async (base64Image: string) => {
+    if (!base64Image.startsWith('data:image')) return base64Image;
+
+    return await new Promise<string>((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxWidth = 1280;
+        const scale = Math.min(1, maxWidth / img.width);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(base64Image);
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.58));
+      };
+      img.onerror = () => resolve(base64Image);
+      img.src = base64Image;
+    });
+  };
+
   // Fetch data when switching tabs or changing date
   useEffect(() => {
     const query = selectedDate ? `?date=${selectedDate}` : '';
@@ -445,10 +471,8 @@ export default function DesktopTracker() {
           
           let targetUid = realUserIdRef.current;
           if (!targetUid) {
-            try {
-              const session = await getSession();
-              if (session?.user?.id) targetUid = session.user.id;
-            } catch (e) {}
+            await loadSession();
+            targetUid = realUserIdRef.current;
           }
           if (!targetUid) {
             try {
@@ -458,9 +482,10 @@ export default function DesktopTracker() {
           }
           if (!targetUid) return;
 
+          const imageUrl = await compressScreenshot(base64Image);
           await fetchWithOfflineQueue('/api/tracker/screenshot', 'POST', {
             userId: targetUid,
-            imageUrl: base64Image,
+            imageUrl,
             offlineCreatedAt: new Date().toISOString()
           });
           console.log('Screenshot saved to DB.');

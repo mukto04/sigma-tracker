@@ -1,32 +1,35 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { parseOfflineDate, requireTrackerUser } from '@/lib/tracker-api';
+
+export const runtime = 'edge';
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const body = await req.json() as {
+      userId?: string;
+      projectId?: string | null;
+      timeEntryId?: string;
+      offlineStartTime?: string;
+    };
     const { userId, projectId } = body;
 
     if (!userId) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
     }
 
-    // For demo purposes, ensure the dummy company and user exist
-    let company = await prisma.company.findFirst();
-    if (!company) {
-      company = await prisma.company.create({ data: { name: 'Demo Company' } });
-    }
+    const auth = await requireTrackerUser(userId, req);
+    if ('error' in auth) return auth.error;
+    const { user } = auth;
 
-    let user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
-      user = await prisma.user.create({
-        data: {
-          id: userId,
-          email: 'demo@company.com',
-          name: 'Demo User',
-          password: 'password123',
-          companyId: company.id
-        }
+    if (projectId) {
+      const project = await prisma.project.findFirst({
+        where: { id: projectId, companyId: user.companyId },
+        select: { id: true },
       });
+      if (!project) {
+        return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+      }
     }
 
     // Close any previous orphaned sessions for this user
@@ -66,17 +69,14 @@ export async function POST(req: Request) {
         ...(body.timeEntryId ? { id: body.timeEntryId } : {}),
         userId: user.id,
         projectId: projectId || null,
-        startTime: body.offlineStartTime ? new Date(body.offlineStartTime) : new Date(),
+        startTime: parseOfflineDate(body.offlineStartTime),
       },
     });
-
-    // In a real app, we'd fetch the company related to the user properly.
-    const userCompany = await prisma.company.findUnique({ where: { id: user.companyId } });
 
     return NextResponse.json({ 
       success: true, 
       timeEntry,
-      idleTimeoutMinutes: userCompany?.idleTimeoutMinutes || 10
+      idleTimeoutMinutes: user.company?.idleTimeoutMinutes || 10
     });
   } catch (error) {
     console.error('Failed to start tracking:', error);
