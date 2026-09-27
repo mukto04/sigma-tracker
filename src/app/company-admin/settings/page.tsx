@@ -53,8 +53,12 @@ export default async function SettingsPage() {
   if (!company) {
     company = {
       id: '',
+      logoUrl: null,
       idleTimeoutMinutes: 10,
-      projects: []
+      plan: 'FREE',
+      paidSeats: 0,
+      subscriptionStatus: 'Inactive',
+      projects: [],
     };
   }
 
@@ -94,7 +98,7 @@ export default async function SettingsPage() {
             🏢 Company Logo
           </h2>
           <p style={{ color: '#64748b', fontSize: '0.875rem', marginBottom: '1.25rem' }}>
-            Upload a logo to display in the sidebar. Maximum 2MB.
+            Upload a logo to display in the sidebar. Maximum 500KB.
           </p>
           <ImageUploadForm id={company.id} type="company" currentImage={company.logoUrl} />
         </div>

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { sendWelcomeEmail } from '@/lib/email';
 
 export const runtime = 'edge';
 
@@ -19,6 +20,10 @@ type StripeEvent = {
 
 function toHex(buffer: ArrayBuffer) {
   return [...new Uint8Array(buffer)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+function makeTemporaryPassword() {
+  return `${crypto.randomUUID().replace(/-/g, '').slice(0, 10)}A1!`;
 }
 
 async function verifyStripeSignature(body: string, signature: string | null, secret: string) {
@@ -64,11 +69,17 @@ export async function POST(req: Request) {
   if (event.type === 'checkout.session.completed') {
     const metadata = event.data?.object?.metadata;
     const companyName = metadata?.companyName;
-    const email = metadata?.email;
+    const email = metadata?.email?.trim().toLowerCase();
     const employees = Math.max(1, Math.min(500, parseInt(metadata?.employees || '1', 10)));
 
     if (companyName && email) {
       try {
+        const existingUser = await prisma.user.findUnique({ where: { email } });
+        if (existingUser) {
+          console.warn(`Stripe webhook skipped provisioning because ${email} already exists.`);
+          return NextResponse.json({ received: true, skipped: 'email_exists' });
+        }
+
         const newCompany = await prisma.company.create({
           data: {
             name: companyName,
@@ -80,7 +91,8 @@ export async function POST(req: Request) {
           },
         });
 
-        const hashedPassword = await bcrypt.hash(crypto.randomUUID(), 10);
+        const tempPassword = makeTemporaryPassword();
+        const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
         await prisma.user.create({
           data: {
@@ -90,6 +102,15 @@ export async function POST(req: Request) {
             role: 'ADMIN',
             companyId: newCompany.id,
           },
+        });
+
+        const loginUrl = process.env.NEXTAUTH_URL || new URL(req.url).origin;
+        await sendWelcomeEmail({
+          to: email,
+          employeeName: 'Admin',
+          companyName,
+          loginUrl,
+          password: tempPassword,
         });
       } catch (error) {
         console.error('Error provisioning company from webhook:', error);
