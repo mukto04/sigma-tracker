@@ -3,8 +3,12 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import bcrypt from 'bcryptjs';
+import { getSuperadminUser } from '@/lib/superadmin';
 
 export async function getSettings() {
+  const admin = await getSuperadminUser();
+  if (!admin) return {};
+
   const settingsArray = await prisma.setting.findMany();
   const settings: Record<string, string> = {};
   for (const s of settingsArray) {
@@ -15,6 +19,12 @@ export async function getSettings() {
 
 export async function updateSetting(key: string, value: string) {
   try {
+    const admin = await getSuperadminUser();
+    if (!admin) return { success: false, error: 'Unauthorized' };
+
+    const allowedKeys = ['login_title', 'login_subtitle', 'smtp_user', 'smtp_from_name'];
+    if (!allowedKeys.includes(key)) return { success: false, error: 'Invalid setting' };
+
     await prisma.setting.upsert({
       where: { key },
       update: { value },
@@ -30,10 +40,9 @@ export async function updateSetting(key: string, value: string) {
 
 export async function updateMasterSecret(newPass: string) {
   try {
-    // For MVP, we update the first ADMIN we find. 
-    // In a real app with sessions, we update the logged in user's password.
-    const superAdmin = await prisma.user.findFirst({ where: { role: 'SUPERADMIN' } });
-    if (!superAdmin) return { success: false, error: 'Superadmin not found' };
+    const superAdmin = await getSuperadminUser();
+    if (!superAdmin) return { success: false, error: 'Unauthorized' };
+    if (!newPass || newPass.length < 8) return { success: false, error: 'Password must be at least 8 characters' };
 
     const hashedPassword = await bcrypt.hash(newPass, 10);
     await prisma.user.update({
