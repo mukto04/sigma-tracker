@@ -8,6 +8,7 @@ try {
   console.error('Failed to load uiohook-napi:', e);
 }
 const isDev = process.env.NODE_ENV === 'development';
+const appUrl = process.env.SIGMA_TRACKER_APP_URL || (isDev ? 'http://localhost:3000/desktop' : 'https://sigma-tracker.pages.dev/desktop');
 
 let mainWindow;
 
@@ -42,8 +43,7 @@ function createWindow() {
     backgroundColor: '#f8fafc'
   });
 
-  // For MVP testing, the packaged .exe will still connect to the local Next.js server
-  mainWindow.loadURL('http://localhost:3000/desktop');
+  mainWindow.loadURL(appUrl);
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
