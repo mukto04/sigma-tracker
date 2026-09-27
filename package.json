@@ -85,6 +85,7 @@
       "node_modules/uiohook-napi/build/Release/*.node",
       "node_modules/uiohook-napi/prebuilds/**/*.node"
     ],
+    "npmRebuild": false,
     "files": [
       "main.js",
       "preload.js",
@@ -92,7 +93,22 @@
       "public/logo.png",
       "public/app-icon.png",
       "node_modules/uiohook-napi/**/*",
-      "node_modules/node-gyp-build/**/*"
+      "node_modules/node-gyp-build/**/*",
+      "!node_modules/@next{,/**/*}",
+      "!node_modules/next{,/**/*}",
+      "!node_modules/@prisma{,/**/*}",
+      "!node_modules/prisma{,/**/*}",
+      "!node_modules/@aws-sdk{,/**/*}",
+      "!node_modules/@smithy{,/**/*}",
+      "!node_modules/react{,/**/*}",
+      "!node_modules/react-dom{,/**/*}",
+      "!node_modules/stripe{,/**/*}",
+      "!node_modules/electron{,/**/*}",
+      "!src{,/**/*}",
+      "!src-tauri{,/**/*}",
+      "!prisma{,/**/*}",
+      "!dist{,/**/*}",
+      "!.next{,/**/*}"
     ]
   }
 }
