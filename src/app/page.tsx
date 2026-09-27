@@ -86,23 +86,14 @@ export default function Home() {
       {/* Download Section */}
       <section id="download" className={styles.downloadSection}>
         <div className={styles.downloadContent}>
-          <h2>Ready to supercharge your team's productivity?</h2>
-          <p>Download our native desktop client for your operating system. Lightweight, secure, and blazing fast.</p>
+          <h2>Ready to supercharge your team&apos;s productivity?</h2>
+          <p>Download the native Windows desktop client. Lightweight, secure, and ready for team tracking.</p>
           <div className={styles.downloadActions}>
             <a href="/SigmaTracker.msi" download="SigmaTracker.msi">
-              <Button size="lg" variant="primary">
-                💻 Windows Installer (.msi)
-              </Button>
+              <Button size="lg" variant="primary">Windows MSI Installer</Button>
             </a>
-            <a href="/SigmaTracker-mac.dmg" download="SigmaTracker-mac.dmg">
-              <Button size="lg" variant="primary" style={{ background: '#1e293b', borderColor: '#334155' }}>
-                🍏 macOS (.dmg)
-              </Button>
-            </a>
-            <a href="/SigmaTracker-linux.AppImage" download="SigmaTracker-linux.AppImage">
-              <Button size="lg" variant="primary" style={{ background: '#0f172a', borderColor: '#334155' }}>
-                🐧 Linux (.AppImage)
-              </Button>
+            <a href="/SigmaTracker-setup.exe" download="SigmaTracker-setup.exe">
+              <Button size="lg" variant="primary" style={{ background: '#1e293b', borderColor: '#334155' }}>Windows Setup EXE</Button>
             </a>
           </div>
         </div>
@@ -156,13 +147,13 @@ export default function Home() {
           <div className={styles.step}>
             <div className={styles.stepNumber}>2</div>
             <h3>Invite Employees</h3>
-            <p>Add your remote workers through the Admin portal. They'll receive instant access credentials.</p>
+            <p>Add your remote workers through the Admin portal. They&apos;ll receive instant access credentials.</p>
           </div>
           <div className={styles.stepConnector}></div>
           <div className={styles.step}>
             <div className={styles.stepNumber}>3</div>
             <h3>Download & Track</h3>
-            <p>Employees download the native app for their OS (Windows, Mac, or Linux), click start, and productivity is synced live!</p>
+            <p>Employees download the native Windows app, click start, and productivity is synced live.</p>
           </div>
         </div>
       </section>

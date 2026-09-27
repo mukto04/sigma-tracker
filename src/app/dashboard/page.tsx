@@ -155,9 +155,9 @@ export default async function DashboardPage() {
                 boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.1)',
                 transition: 'background-color 0.2s ease'
               }}>
-                🪟 Windows (.exe) • 8 MB
+                Windows MSI Installer - 2.97 MB
               </a>
-              <a href="/SigmaTracker-mac.dmg" download="SigmaTracker-mac.dmg" style={{
+              <a href="/SigmaTracker-setup.exe" download="SigmaTracker-setup.exe" style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -171,23 +171,7 @@ export default async function DashboardPage() {
                 textDecoration: 'none',
                 transition: 'background-color 0.2s ease'
               }}>
-                🍏 macOS (.dmg)
-              </a>
-              <a href="/SigmaTracker-linux.AppImage" download="SigmaTracker-linux.AppImage" style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                backgroundColor: '#0f172a',
-                color: 'white',
-                padding: '0.65rem 1rem',
-                borderRadius: '8px',
-                fontWeight: 600,
-                fontSize: '0.875rem',
-                textDecoration: 'none',
-                transition: 'background-color 0.2s ease'
-              }}>
-                🐧 Linux (.AppImage)
+                Windows Setup EXE - 1.91 MB
               </a>
             </div>
           </div>
