@@ -1,10 +1,18 @@
 'use client';
 
 import React, { useState, useTransition } from 'react';
-import { softDeleteCompany, restoreCompany, hardDeleteCompany, editCompany } from './actions';
+import { softDeleteCompany, restoreCompany, editCompany } from './actions';
 import { Button } from '@/components/ui/Button';
 
-export default function CompanyActionButtons({ company }: { company: any }) {
+type CompanyActionModel = {
+  id: string;
+  name: string;
+  paidSeats: number;
+  endDate: Date | string | null;
+  subscriptionStatus: string;
+};
+
+export default function CompanyActionButtons({ company }: { company: CompanyActionModel }) {
   const [isPending, startTransition] = useTransition();
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   
@@ -37,12 +45,6 @@ export default function CompanyActionButtons({ company }: { company: any }) {
     });
   };
 
-  const handleHardDelete = () => {
-    if (!confirm(`WARNING: This will permanently delete ${company.name} and all associated users. Are you sure?`)) return;
-    startTransition(async () => {
-      await hardDeleteCompany(company.id);
-    });
-  };
 
   const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,14 +74,6 @@ export default function CompanyActionButtons({ company }: { company: any }) {
             title="Restore"
           >
             ↺ Restore
-          </button>
-          <button 
-            style={{...actionBtnStyle, fontSize: '1rem', background: '#ef4444', color: 'white', padding: '0.25rem 0.5rem', borderRadius: '4px'}} 
-            onClick={handleHardDelete} 
-            disabled={isPending}
-            title="Permanent Delete"
-          >
-            🗑️ Drop
           </button>
         </div>
       ) : (

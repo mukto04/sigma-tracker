@@ -15,7 +15,7 @@ export default async function EmployeesPage() {
       select: { paidSeats: true },
     }),
     prisma.user.findMany({
-      where: { companyId: company.companyId, role: { not: 'SUPERADMIN' } },
+      where: { companyId: company.companyId, role: 'EMPLOYEE' },
       select: { id: true, name: true, email: true, role: true, createdAt: true },
       orderBy: { createdAt: 'asc' },
       take: 200,

@@ -134,6 +134,10 @@ export default function DesktopTracker() {
       });
       const data = await res.json();
       if (res.ok && (data.success || data.ok)) {
+        if (data.user?.role !== 'EMPLOYEE') {
+          setLoginError('Desktop tracker is only for employee accounts.');
+          return;
+        }
         await loadSession();
       } else {
         setLoginError(data.error || 'Email or password is incorrect.');

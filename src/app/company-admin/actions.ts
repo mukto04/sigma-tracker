@@ -42,7 +42,7 @@ export async function addEmployee(companyId: string, name: string, email: string
 
     const seatLimit = Math.max(1, admin.company?.paidSeats || 3);
     const usedSeats = await prisma.user.count({
-      where: { companyId: admin.companyId, role: { not: 'SUPERADMIN' } },
+      where: { companyId: admin.companyId, role: 'EMPLOYEE' },
     });
     if (usedSeats >= seatLimit) {
       return { success: false, error: `Seat limit reached. Your current plan allows ${seatLimit} users.` };
@@ -143,7 +143,7 @@ export async function resetEmployeePassword(userId: string, newPassword: string)
       where: { id: userId },
       include: { company: true },
     });
-    if (!targetUser || targetUser.companyId !== admin.companyId || targetUser.role === 'SUPERADMIN') {
+    if (!targetUser || targetUser.companyId !== admin.companyId || targetUser.role !== 'EMPLOYEE') {
       return { success: false, error: 'Employee not found' };
     }
 

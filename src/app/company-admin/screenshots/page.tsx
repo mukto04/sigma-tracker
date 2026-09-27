@@ -17,7 +17,7 @@ export default async function CompanyAdminScreenshotsPage({
   const selectedUserId = query.userId || '';
   const company = await requireAdminCompany('/company-admin/screenshots');
   const employees = await prisma.user.findMany({
-    where: { companyId: company.companyId, role: { not: 'SUPERADMIN' } },
+    where: { companyId: company.companyId, role: 'EMPLOYEE' },
     select: { id: true, name: true, email: true },
     orderBy: { name: 'asc' },
     take: 200,

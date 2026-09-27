@@ -43,7 +43,7 @@ export default async function ReportsPage({
 
   const company = await requireAdminCompany('/company-admin/reports');
   const users = await prisma.user.findMany({
-    where: { companyId: company.companyId, role: { not: 'SUPERADMIN' } },
+    where: { companyId: company.companyId, role: 'EMPLOYEE' },
     select: { id: true, name: true, email: true },
     orderBy: { name: 'asc' },
     take: 200,

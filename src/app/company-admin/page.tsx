@@ -51,7 +51,7 @@ export default async function CompanyAdminDashboard() {
         name: true,
         paidSeats: true,
         users: {
-          where: { role: { not: 'SUPERADMIN' } },
+          where: { role: 'EMPLOYEE' },
           select: { id: true, name: true, email: true },
           orderBy: { name: 'asc' },
           take: 200,

@@ -137,17 +137,8 @@ export async function hardDeleteCompany(companyId: string) {
     const unauthorized = await ensureSuperadmin();
     if (unauthorized) return unauthorized;
 
-    // Delete users first due to foreign key
-    await prisma.user.deleteMany({
-      where: { companyId }
-    });
-    // Delete the company
-    await prisma.company.delete({
-      where: { id: companyId }
-    });
-    revalidatePath('/superadmin');
-    revalidatePath('/superadmin/tenants');
-    return { success: true };
+    console.warn(`Permanent delete blocked for company ${companyId}. Use soft delete until backup/export retention is implemented.`);
+    return { success: false, error: 'Permanent delete is disabled for data safety. Use soft delete instead.' };
   } catch (error) {
     console.error('Failed to hard delete company:', error);
     return { success: false, error: 'Failed to permanently delete company' };

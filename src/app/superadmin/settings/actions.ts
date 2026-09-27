@@ -22,7 +22,18 @@ export async function updateSetting(key: string, value: string) {
     const admin = await getSuperadminUser();
     if (!admin) return { success: false, error: 'Unauthorized' };
 
-    const allowedKeys = ['login_title', 'login_subtitle', 'smtp_user', 'smtp_from_name'];
+    const allowedKeys = [
+      'login_title',
+      'login_subtitle',
+      'stripe_public_key',
+      'stripe_secret_key',
+      'stripe_webhook_secret',
+      'smtp_host',
+      'smtp_port',
+      'smtp_user',
+      'smtp_pass',
+      'smtp_from_name',
+    ];
     if (!allowedKeys.includes(key)) return { success: false, error: 'Invalid setting' };
 
     await prisma.setting.upsert({

@@ -37,7 +37,7 @@ export default async function CompanyAdminTimesheetsPage({
   const weekOffset = parseInt(query.week || '0', 10);
   const company = await requireAdminCompany('/company-admin/timesheets');
   const employees = await prisma.user.findMany({
-    where: { companyId: company.companyId, role: { not: 'SUPERADMIN' } },
+    where: { companyId: company.companyId, role: 'EMPLOYEE' },
     select: { id: true, name: true, email: true },
     orderBy: { name: 'asc' },
     take: 200,

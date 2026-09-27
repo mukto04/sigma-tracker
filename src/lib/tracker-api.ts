@@ -55,6 +55,10 @@ export async function requireTrackerUser(bodyUserId?: string, req?: Request) {
     return { error: NextResponse.json({ error: 'User not found' }, { status: 404 }) };
   }
 
+  if (user.role !== 'EMPLOYEE') {
+    return { error: NextResponse.json({ error: 'Tracker access is only available for employee accounts' }, { status: 403 }) };
+  }
+
   return { user };
 }
 

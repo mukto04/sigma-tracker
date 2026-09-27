@@ -1,11 +1,9 @@
-import { getSession } from '@/lib/auth';
 import React from 'react';
 import styles from './layout.module.css';
-import { Button } from '@/components/ui/Button';
+import { requireEmployee } from '@/lib/employee';
 
 export const runtime = 'edge';
 
-import { prisma } from '@/lib/prisma';
 import { DashboardNav } from './DashboardNav';
 
 export default async function DashboardLayout({
@@ -13,20 +11,14 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getSession();
+  const user = await requireEmployee('/dashboard');
   
   let companyName = "SigmaTrack";
   let logoUrl = null;
-  
-  if (session?.user?.id) {
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      include: { company: true }
-    });
-    if (user?.company) {
-      companyName = user.company.name;
-      logoUrl = user.company.logoUrl;
-    }
+
+  if (user.company) {
+    companyName = user.company.name;
+    logoUrl = user.company.logoUrl;
   }
 
   return (

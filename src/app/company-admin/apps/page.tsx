@@ -30,7 +30,7 @@ export default async function CompanyAdminAppsPage({
   const range = query.range || 'today';
   const company = await requireAdminCompany('/company-admin/apps');
   const users = await prisma.user.findMany({
-    where: { companyId: company.companyId, role: { not: 'SUPERADMIN' } },
+    where: { companyId: company.companyId, role: 'EMPLOYEE' },
     select: { id: true },
     take: 200,
   });
