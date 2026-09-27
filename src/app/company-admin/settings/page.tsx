@@ -1,17 +1,15 @@
-import { getSession } from '@/lib/auth';
 import React from 'react';
 import { prisma } from '@/lib/prisma';
 import { IdleTimeoutForm } from '../IdleTimeoutForm';
 import { AddProjectForm } from '../Forms';
-import { redirect } from 'next/navigation';
+import { requireAdminCompany } from '@/lib/company-admin';
 
 export const runtime = 'edge';
 
 import { ImageUploadForm, ChangePasswordForm } from '@/components/SettingsForms';
 
 export default async function SettingsPage() {
-  const session = await getSession();
-  if (!session?.user?.id) redirect('/login?callbackUrl=/company-admin/settings');
+  const adminContext = await requireAdminCompany('/company-admin/settings');
   
   let company: {
     id: string;
@@ -23,15 +21,8 @@ export default async function SettingsPage() {
     projects: { id: string; name: string; description: string | null }[];
   } | null = null;
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { companyId: true },
-    });
-
-    if (!user?.companyId) redirect('/login?callbackUrl=/company-admin/settings');
-
     company = await prisma.company.findUnique({
-      where: { id: user.companyId },
+      where: { id: adminContext.companyId },
       select: {
         id: true,
         logoUrl: true,
@@ -111,7 +102,7 @@ export default async function SettingsPage() {
           <p style={{ color: '#64748b', fontSize: '0.875rem', marginBottom: '1.25rem' }}>
             Change your admin account password.
           </p>
-          <ChangePasswordForm userId={session.user.id} />
+          <ChangePasswordForm userId={adminContext.userId} />
         </div>
       </div>
 

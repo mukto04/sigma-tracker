@@ -30,15 +30,28 @@ export function LoginForm() {
         const data = await res.json();
         setError(data.error || 'Invalid email or password');
       } else {
+        const data = await res.json() as { user?: { role?: string } };
         const callbackUrl = searchParams.get('callbackUrl');
-        if (callbackUrl) {
+        const role = data.user?.role;
+        const roleHome = role === 'SUPERADMIN' ? '/superadmin' : role === 'ADMIN' ? '/company-admin' : '/dashboard';
+        const allowedCallback =
+          callbackUrl &&
+          callbackUrl.startsWith('/') &&
+          !callbackUrl.startsWith('//') &&
+          (
+            (role === 'SUPERADMIN' && callbackUrl.startsWith('/superadmin')) ||
+            (role === 'ADMIN' && callbackUrl.startsWith('/company-admin')) ||
+            (role === 'EMPLOYEE' && (callbackUrl.startsWith('/dashboard') || callbackUrl.startsWith('/desktop') || callbackUrl.startsWith('/employee')))
+          );
+
+        if (allowedCallback) {
           router.push(callbackUrl);
         } else {
-          router.push('/');
+          router.push(roleHome);
         }
         router.refresh();
       }
-    } catch (err) {
+    } catch {
       setError('Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);

@@ -1,7 +1,7 @@
 import React from 'react';
 import { prisma } from '@/lib/prisma';
 import { AdminSidebar } from './AdminSidebar';
-import { getSession } from '@/lib/auth';
+import { requireAdminCompany } from '@/lib/company-admin';
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
@@ -11,6 +11,7 @@ export default async function CompanyAdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const adminContext = await requireAdminCompany('/company-admin');
   let company: {
     name: string;
     plan: string;
@@ -19,26 +20,23 @@ export default async function CompanyAdminLayout({
   let adminName = 'Admin';
 
   try {
-    const session = await getSession();
-    if (session?.user?.id) {
-      const user = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: {
-          name: true,
-          email: true,
-          company: {
-            select: {
-              name: true,
-              plan: true,
-              logoUrl: true,
-            },
+    const user = await prisma.user.findUnique({
+      where: { id: adminContext.userId },
+      select: {
+        name: true,
+        email: true,
+        company: {
+          select: {
+            name: true,
+            plan: true,
+            logoUrl: true,
           },
         },
-      });
+      },
+    });
 
-      company = user?.company || null;
-      adminName = user?.name || user?.email || 'Admin';
-    }
+    company = user?.company || null;
+    adminName = user?.name || user?.email || 'Admin';
   } catch (err) {
     console.error('Failed to load company in admin layout:', err);
   }

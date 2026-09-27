@@ -86,5 +86,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ user: null });
   }
 
-  return NextResponse.json({ user });
+  const freshUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { id: true, email: true, name: true, role: true },
+  });
+
+  return NextResponse.json({ user: freshUser || null });
 }

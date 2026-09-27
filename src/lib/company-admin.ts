@@ -23,7 +23,7 @@ export async function requireAdminCompany(callbackUrl: string): Promise<AdminCom
   });
 
   if (!user?.companyId || (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN')) {
-    redirect('/');
+    redirect('/dashboard');
   }
 
   return {
