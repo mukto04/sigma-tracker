@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-export function AdminSidebar({ companyName, adminName, logoUrl }: { companyName: string, adminName: string, logoUrl?: string | null }) {
+export function AdminSidebar({ companyName, adminName, adminEmail, logoUrl }: { companyName: string, adminName: string, adminEmail: string, logoUrl?: string | null }) {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 
@@ -87,6 +87,23 @@ export function AdminSidebar({ companyName, adminName, logoUrl }: { companyName:
           background-color: #2563eb;
           color: white;
         }
+        .admin-logout-button {
+          width: 100%;
+          margin-top: 0.75rem;
+          padding: 0.7rem 1rem;
+          border: 1px solid #334155;
+          border-radius: 8px;
+          background: transparent;
+          color: #fca5a5;
+          cursor: pointer;
+          font-size: 0.875rem;
+          font-weight: 700;
+          text-align: left;
+        }
+        .admin-logout-button:hover {
+          background: #1e293b;
+          color: #fecaca;
+        }
       `}</style>
       <div className="admin-sidebar">
         <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #1e293b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -124,20 +141,32 @@ export function AdminSidebar({ companyName, adminName, logoUrl }: { companyName:
           })}
         </nav>
 
-        <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid #1e293b', alignItems: 'center', gap: '0.75rem', display: isOpen ? 'flex' : 'none' }} className="admin-nav-profile">
-          <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.875rem' }}>
-            {adminName.substring(0, 2).toUpperCase()}
+        <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid #1e293b', display: isOpen ? 'block' : 'none' }} className="admin-nav-profile">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.875rem', flexShrink: 0 }}>
+              {(adminName || adminEmail || 'AD').substring(0, 2).toUpperCase()}
+            </div>
+            <div style={{ overflow: 'hidden', minWidth: 0 }}>
+              <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'white', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{adminName}</div>
+              <div title={adminEmail} style={{ fontSize: '0.75rem', color: '#94a3b8', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{adminEmail || 'Administrator'}</div>
+            </div>
           </div>
-          <div style={{ overflow: 'hidden' }}>
-            <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'white', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{adminName}</div>
-            <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Administrator</div>
-          </div>
+          <button
+            className="admin-logout-button"
+            onClick={async () => {
+              await fetch('/api/auth/logout', { method: 'POST' });
+              window.location.href = '/login';
+            }}
+          >
+            Log out
+          </button>
         </div>
       </div>
       <style>{`
         @media (min-width: 768px) {
           .admin-nav-profile {
             display: flex !important;
+            flex-direction: column;
           }
         }
       `}</style>

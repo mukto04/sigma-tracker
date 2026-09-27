@@ -66,6 +66,7 @@
 }
 
 .userSection {
+  margin-top: auto;
   padding: 1.5rem;
   border-top: 1px solid var(--border-light);
   display: flex;
@@ -88,17 +89,24 @@
 .userInfo {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .userName {
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .userRole {
   font-size: 0.75rem;
   color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mainContent {

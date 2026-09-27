@@ -6,6 +6,6 @@ export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 export default async function SuperadminLayout({ children }: { children: React.ReactNode }) {
-  await requireSuperadmin('/superadmin');
-  return <SuperadminShell>{children}</SuperadminShell>;
+  const user = await requireSuperadmin('/superadmin');
+  return <SuperadminShell name={user.name || user.email} email={user.email}>{children}</SuperadminShell>;
 }

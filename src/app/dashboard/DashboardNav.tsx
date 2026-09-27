@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import styles from './layout.module.css';
 
-export function DashboardNav() {
+export function DashboardNav({ name, email }: { name: string; email: string }) {
   const pathname = usePathname();
 
   return (
@@ -24,13 +24,20 @@ export function DashboardNav() {
       <Link href="/dashboard/settings" prefetch={false} className={`${styles.navItem} ${pathname === '/dashboard/settings' ? styles.active : ''}`}>
         Settings
       </Link>
+      <div className={styles.userSection}>
+        <div className={styles.avatar}>{(name || email || 'EM').substring(0, 2).toUpperCase()}</div>
+        <div className={styles.userInfo}>
+          <div className={styles.userName}>{name}</div>
+          <div className={styles.userRole} title={email}>{email}</div>
+        </div>
+      </div>
       <button 
         onClick={async () => {
           await fetch('/api/auth/logout', { method: 'POST' });
           window.location.href = '/login';
         }}
         className={styles.navItem} 
-        style={{ color: '#ef4444', marginTop: 'auto', fontWeight: 'bold', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%' }}
+        style={{ color: '#ef4444', fontWeight: 'bold', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%' }}
       >
         Log out
       </button>

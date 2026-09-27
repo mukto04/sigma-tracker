@@ -34,7 +34,7 @@ export default async function DashboardLayout({
             </>
           )}
         </div>
-        <DashboardNav />
+        <DashboardNav name={user.name || user.email} email={user.email} />
       </aside>
       <main className={styles.mainContent}>
         <header className={styles.topbar}>

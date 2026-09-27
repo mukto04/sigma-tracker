@@ -87,7 +87,7 @@ const styles = {
   }
 };
 
-export default function SuperadminShell({ children }: { children: React.ReactNode }) {
+export default function SuperadminShell({ children, name, email }: { children: React.ReactNode; name: string; email: string }) {
   const pathname = usePathname();
 
   const navLinks = [
@@ -131,6 +131,8 @@ export default function SuperadminShell({ children }: { children: React.ReactNod
           <div>
             <div style={{ fontWeight: 800, color: 'white', fontSize: '1.1rem' }}>Master</div>
             <div style={{ fontSize: '0.75rem', color: '#3b82f6', fontWeight: 700 }}>Root Access</div>
+            <div title={email} style={{ marginTop: '0.35rem', maxWidth: '170px', fontSize: '0.72rem', color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
+            <div title={email} style={{ maxWidth: '170px', fontSize: '0.68rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{email}</div>
           </div>
         </div>
 

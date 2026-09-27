@@ -18,6 +18,7 @@ export default async function CompanyAdminLayout({
     logoUrl: string | null;
   } | null = null;
   let adminName = 'Admin';
+  let adminEmail = '';
 
   try {
     const user = await prisma.user.findUnique({
@@ -37,6 +38,7 @@ export default async function CompanyAdminLayout({
 
     company = user?.company || null;
     adminName = user?.name || user?.email || 'Admin';
+    adminEmail = user?.email || '';
   } catch (err) {
     console.error('Failed to load company in admin layout:', err);
   }
@@ -101,7 +103,7 @@ export default async function CompanyAdminLayout({
         }
       `}</style>
       <div className="admin-layout-wrapper">
-        <AdminSidebar companyName={company.name} adminName={adminName} logoUrl={company.logoUrl} />
+        <AdminSidebar companyName={company.name} adminName={adminName} adminEmail={adminEmail} logoUrl={company.logoUrl} />
 
         <div className="admin-main-content">
           <div className="admin-header-row">
