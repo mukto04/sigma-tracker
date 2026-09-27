@@ -87,13 +87,13 @@ export default function Home() {
       <section id="download" className={styles.downloadSection}>
         <div className={styles.downloadContent}>
           <h2>Ready to supercharge your team&apos;s productivity?</h2>
-          <p>Download the native Windows desktop client. Lightweight, secure, and ready for team tracking.</p>
+          <p>Download the native Windows desktop client. Use the ZIP option if your browser blocks installer files.</p>
           <div className={styles.downloadActions}>
-            <a href="/SigmaTracker.msi" download="SigmaTracker.msi">
-              <Button size="lg" variant="primary">Windows MSI Installer</Button>
+            <a href="/SigmaTracker.zip" download="SigmaTracker.zip">
+              <Button size="lg" variant="primary">Windows Portable ZIP</Button>
             </a>
-            <a href="/SigmaTracker-setup.exe" download="SigmaTracker-setup.exe">
-              <Button size="lg" variant="primary" style={{ background: '#1e293b', borderColor: '#334155' }}>Windows Setup EXE</Button>
+            <a href="/SigmaTracker.msi" download="SigmaTracker.msi">
+              <Button size="lg" variant="primary" style={{ background: '#1e293b', borderColor: '#334155' }}>MSI Installer</Button>
             </a>
           </div>
         </div>
