@@ -15,6 +15,7 @@ interface ScreenshotItem {
 
 export function UnifiedScreenshotStream({ screenshots }: { screenshots: ScreenshotItem[] }) {
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
+  const [loadedImages, setLoadedImages] = useState<Record<string, string>>({});
 
   const handleNext = useCallback((e?: React.MouseEvent | KeyboardEvent) => {
     e?.stopPropagation?.();
@@ -40,6 +41,44 @@ export function UnifiedScreenshotStream({ screenshots }: { screenshots: Screensh
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentIndex, handleNext, handlePrev]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const objectUrls: string[] = [];
+
+    const loadImages = async () => {
+      const entries = await Promise.all(
+        screenshots.map(async (item) => {
+          try {
+            const res = await fetch(item.imageUrl, { credentials: 'include', cache: 'no-store' });
+            if (!res.ok) return [item.id, item.imageUrl] as const;
+            const blob = await res.blob();
+            if (!blob.type.startsWith('image/')) return [item.id, item.imageUrl] as const;
+            const objectUrl = URL.createObjectURL(blob);
+            objectUrls.push(objectUrl);
+            return [item.id, objectUrl] as const;
+          } catch {
+            return [item.id, item.imageUrl] as const;
+          }
+        })
+      );
+
+      if (!cancelled) {
+        setLoadedImages(Object.fromEntries(entries));
+      }
+    };
+
+    if (screenshots.length > 0) {
+      loadImages();
+    } else {
+      setLoadedImages({});
+    }
+
+    return () => {
+      cancelled = true;
+      objectUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [screenshots]);
 
   if (screenshots.length === 0) {
     return (
@@ -81,7 +120,7 @@ export function UnifiedScreenshotStream({ screenshots }: { screenshots: Screensh
             {/* Image Preview */}
             <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%', backgroundColor: '#0f172a', overflow: 'hidden' }}>
               <img
-                src={item.imageUrl}
+                src={loadedImages[item.id] || item.imageUrl}
                 alt="Screenshot"
                 style={{
                   position: 'absolute',
@@ -92,7 +131,16 @@ export function UnifiedScreenshotStream({ screenshots }: { screenshots: Screensh
                   objectFit: 'cover',
                 }}
                 loading="lazy"
+                onError={(e) => {
+                  const img = e.currentTarget;
+                  img.style.display = 'none';
+                  const fallback = img.nextElementSibling as HTMLElement | null;
+                  if (fallback) fallback.style.display = 'flex';
+                }}
               />
+              <div style={{ display: 'none', position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.8125rem' }}>
+                Preview unavailable
+              </div>
               <span
                 style={{
                   position: 'absolute',
@@ -267,7 +315,7 @@ export function UnifiedScreenshotStream({ screenshots }: { screenshots: Screensh
           {/* Full Screen Image */}
           <div style={{ maxWidth: '90vw', maxHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <img
-              src={activeItem.imageUrl}
+              src={loadedImages[activeItem.id] || activeItem.imageUrl}
               alt="Screenshot Full"
               style={{
                 maxWidth: '100%',

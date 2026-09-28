@@ -45,7 +45,10 @@ export async function GET(req: Request) {
       return s;
     });
 
-    return NextResponse.json({ screenshots });
+    return NextResponse.json(
+      { screenshots },
+      { headers: { 'Cache-Control': 'no-store, max-age=0' } }
+    );
   } catch (error) {
     console.error('Failed to fetch screenshots:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

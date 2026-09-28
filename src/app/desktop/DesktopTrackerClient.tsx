@@ -194,6 +194,11 @@ export default function DesktopTracker() {
   const [isOffline, setIsOffline] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
+  const activeTabRef = React.useRef(activeTab);
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
+
   useEffect(() => {
     let cancelled = false;
     const objectUrls: string[] = [];
@@ -424,7 +429,7 @@ export default function DesktopTracker() {
   useEffect(() => {
     const query = selectedDate ? `?date=${selectedDate}` : '';
     if (activeTab === 'screenshots') {
-      fetch(`/api/tracker/screenshots${query}`).then(res => res.json()).then(data => {
+      fetch(`/api/tracker/screenshots${query}`, { cache: 'no-store' }).then(res => res.json()).then(data => {
         if (data.screenshots) setScreenshots(data.screenshots);
       });
     } else if (activeTab === 'timesheet') {
@@ -582,12 +587,30 @@ export default function DesktopTracker() {
           if (!targetUid) return;
 
           const imageUrl = await compressScreenshot(base64Image);
-          await fetchWithOfflineQueue('/api/tracker/screenshot', 'POST', {
+          const saved = await fetchWithOfflineQueue('/api/tracker/screenshot', 'POST', {
             userId: targetUid,
             imageUrl,
             offlineCreatedAt: new Date().toISOString()
           });
+          if (saved?.success && saved.screenshot) {
+            setScreenshots((prev) => {
+              if (prev.some((item) => item.id === saved.screenshot.id)) return prev;
+              return [saved.screenshot, ...prev].slice(0, 100);
+            });
+          } else if (saved?.queued) {
+            setScreenshots((prev) => [
+              {
+                id: `local-${Date.now()}`,
+                imageUrl,
+                createdAt: new Date().toISOString(),
+              },
+              ...prev,
+            ].slice(0, 100));
+          }
           console.log('Screenshot saved to DB.');
+          if (activeTabRef.current === 'screenshots') {
+            refreshData();
+          }
           notify('Screenshot Taken', 'A periodic screenshot has been captured.');
         } catch (error) {
           console.error('Failed to save screenshot:', error);
@@ -625,7 +648,7 @@ export default function DesktopTracker() {
 
   const refreshData = () => {
     const query = selectedDate ? `?date=${selectedDate}` : '';
-    fetch(`/api/tracker/screenshots${query}`).then(res => res.json()).then(data => {
+    fetch(`/api/tracker/screenshots${query}`, { cache: 'no-store' }).then(res => res.json()).then(data => {
       if (data.screenshots) setScreenshots(data.screenshots);
     });
     fetch(`/api/tracker/timesheets${query}`).then(res => res.json()).then(data => {
