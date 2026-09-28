@@ -43,6 +43,8 @@ next-env.d.ts
 # desktop app build outputs
 /dist/
 /src-tauri/target/
+/src-tauri/updater.key
+/src-tauri/updater.key.pub
 prisma/dev.db
 *.db
 *.db-journal  

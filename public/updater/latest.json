@@ -1,0 +1,11 @@
+{
+  "version": "0.1.1",
+  "notes": "Adds updater support, fixes desktop screenshot previews, and refreshes installer downloads.",
+  "pub_date": "2026-09-28T00:00:00Z",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUUWRxbHVCZ2NxQytJMlA1SUpBWUxSQnZ3NTlSUjlKUE1WeGlSY1dWd3NnL0ZvbnFsV1kxbjR4UVYxVUJPZzJ6MzArTmU1eUNPVm15WHZvWEdTSXBsWXFjRm50YUJUcWdNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkwNTU5MDc4CWZpbGU6U2lnbWFUcmFja2VyXzAuMS4xX3g2NC1zZXR1cC5leGUJdmVyc2lvbjowLjEuMQpvd3RvNU1lRVpzaDlCNkRKdWl5Q0J4cW84VVM0b1A0aVYwZnZnTlZCMjM2azBIRGd6QTNkdHMzTFpsenUvcXh6c2ttekEyUzVad3d2SlF0bjNkdlBDUT09Cg==",
+      "url": "https://sigma-tracker.pages.dev/SigmaTracker-setup.exe"
+    }
+  }
+}

@@ -58,8 +58,12 @@ export async function GET(req: Request) {
 
     const headers = new Headers();
     object.writeHttpMetadata(headers);
+    if (!headers.has('Content-Type')) {
+      headers.set('Content-Type', 'image/jpeg');
+    }
     headers.set('etag', object.httpEtag);
     headers.set('Cache-Control', 'private, max-age=3600');
+    headers.set('X-Content-Type-Options', 'nosniff');
 
     return new Response(object.body, { headers });
   } catch (error) {

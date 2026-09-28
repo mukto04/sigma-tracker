@@ -1,4 +1,4 @@
-SigmaTracker Desktop App
+SigmaTracker Desktop App 0.1.1
 
 Temporary install note:
 1. Extract this ZIP file.

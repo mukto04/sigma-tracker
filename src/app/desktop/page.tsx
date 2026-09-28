@@ -180,15 +180,98 @@ export default function DesktopTracker() {
   const [activeTab, setActiveTab] = useState('summary');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [screenshots, setScreenshots] = useState<any[]>([]);
+  const [screenshotImages, setScreenshotImages] = useState<Record<string, string>>({});
   const [timesheets, setTimesheets] = useState<any[]>([]);
   const [summaryData, setSummaryData] = useState<any>(null);
   const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
   const [hoveredHour, setHoveredHour] = useState<number | null>(null);
   const [hoveredChart, setHoveredChart] = useState<'logged' | 'productivity' | 'apps' | null>(null);
+  const [availableUpdate, setAvailableUpdate] = useState<any | null>(null);
+  const [updateMessage, setUpdateMessage] = useState('');
+  const [updating, setUpdating] = useState(false);
 
   // --- Offline Sync Engine ---
   const [isOffline, setIsOffline] = useState(false);
   const [syncing, setSyncing] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const objectUrls: string[] = [];
+
+    const loadImages = async () => {
+      const entries = await Promise.all(
+        screenshots
+          .filter((s) => s.id && s.imageUrl)
+          .map(async (s) => {
+            try {
+              const res = await fetch(s.imageUrl, { credentials: 'include', cache: 'no-store' });
+              if (!res.ok) return [s.id, s.imageUrl] as const;
+              const blob = await res.blob();
+              if (!blob.type.startsWith('image/')) return [s.id, s.imageUrl] as const;
+              const objectUrl = URL.createObjectURL(blob);
+              objectUrls.push(objectUrl);
+              return [s.id, objectUrl] as const;
+            } catch {
+              return [s.id, s.imageUrl] as const;
+            }
+          })
+      );
+
+      if (!cancelled) {
+        setScreenshotImages(Object.fromEntries(entries));
+      }
+    };
+
+    if (screenshots.length > 0) {
+      loadImages();
+    } else {
+      setScreenshotImages({});
+    }
+
+    return () => {
+      cancelled = true;
+      objectUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [screenshots]);
+
+  useEffect(() => {
+    const checkForUpdate = async () => {
+      const win = window as any;
+      if (!win.__TAURI__) return;
+
+      try {
+        const { check } = await import('@tauri-apps/plugin-updater');
+        const update = await check();
+        if (update) {
+          setAvailableUpdate(update);
+          setUpdateMessage(`Update ${update.version} is ready.`);
+        }
+      } catch (error) {
+        console.warn('Update check unavailable:', error);
+      }
+    };
+
+    checkForUpdate();
+    const interval = window.setInterval(checkForUpdate, 6 * 60 * 60 * 1000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const installAvailableUpdate = async () => {
+    if (!availableUpdate || updating) return;
+
+    setUpdating(true);
+    setUpdateMessage('Downloading update...');
+    try {
+      await availableUpdate.downloadAndInstall((event: any) => {
+        if (event.event === 'Started') setUpdateMessage('Downloading update...');
+        if (event.event === 'Finished') setUpdateMessage('Installing update...');
+      }, { restartAfterInstall: true });
+    } catch (error) {
+      console.error('Update install failed:', error);
+      setUpdateMessage('Update failed. Please download the MSI installer.');
+      setUpdating(false);
+    }
+  };
 
   useEffect(() => {
     const handleOnline = () => { setIsOffline(false); syncOfflineQueue(); };
@@ -750,6 +833,18 @@ export default function DesktopTracker() {
 
   return (
     <div className={styles.appContainer}>
+      {availableUpdate && (
+        <div style={{ position: 'fixed', top: '42px', left: '50%', transform: 'translateX(-50%)', zIndex: 10000, display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', background: '#172554', color: '#dbeafe', border: '1px solid #2563eb', borderRadius: '8px', boxShadow: '0 12px 28px rgba(0,0,0,0.35)', WebkitAppRegion: 'no-drag' } as any}>
+          <span style={{ fontSize: '12px', fontWeight: 700 }}>{updateMessage || 'A new update is available.'}</span>
+          <button
+            onClick={installAvailableUpdate}
+            disabled={updating}
+            style={{ padding: '6px 10px', border: 'none', borderRadius: '6px', background: '#3b82f6', color: '#fff', fontSize: '12px', fontWeight: 800, cursor: updating ? 'not-allowed' : 'pointer', opacity: updating ? 0.7 : 1 }}
+          >
+            {updating ? 'Updating...' : 'Update now'}
+          </button>
+        </div>
+      )}
       {/* TOP HEADER (Drag Region) */}
       <div className={styles.dragRegion}>
         <div className={`menu-container ${styles.headerLeft}`} style={{ position: 'absolute', left: isMacClient ? '5.5rem' : '1.5rem', display: 'flex', alignItems: 'center', zIndex: 99999 }}>
@@ -1339,24 +1434,33 @@ export default function DesktopTracker() {
               {screenshots.length === 0 ? (
                 <div style={{ gridColumn: '1 / -1', textAlign: 'center', color: '#a3a3a3', marginTop: '2rem' }}>No screenshots today.</div>
               ) : (
-                screenshots.map(s => (
-                  <div key={s.id} onClick={() => setFullScreenImage(s.imageUrl)} style={{ cursor: 'pointer', position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid #2a2a2a', backgroundColor: '#111', height: '110px' }}>
-                    {s.imageUrl ? (
+                screenshots.map(s => {
+                  const displayImage = screenshotImages[s.id] || s.imageUrl;
+                  return (
+                  <div key={s.id} onClick={() => setFullScreenImage(displayImage)} style={{ cursor: 'pointer', position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid #2a2a2a', backgroundColor: '#111', height: '110px' }}>
+                    {displayImage ? (
                       <img 
-                        src={s.imageUrl} 
+                        src={displayImage} 
                         alt="Screenshot" 
                         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        onError={(e) => {
+                          const img = e.target as HTMLImageElement;
+                          img.style.display = 'none';
+                          const fallback = img.nextElementSibling as HTMLElement | null;
+                          if (fallback) fallback.style.display = 'flex';
+                        }}
                       />
                     ) : (
                       <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#444', fontSize: '11px' }}>No image</div>
                     )}
+                    <div style={{ display: 'none', position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', color: '#737373', fontSize: '11px' }}>Image unavailable</div>
                     <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', padding: '4px 8px', background: 'linear-gradient(transparent, rgba(0,0,0,0.85))', color: '#3b82f6', fontSize: '10px', display: 'flex', justifyContent: 'space-between', boxSizing: 'border-box' }}>
                       <span>{new Date(s.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})}</span>
                       <span style={{ color: '#a3a3a3' }}>{new Date(s.createdAt).toLocaleDateString()}</span>
                     </div>
                   </div>
-                ))
+                  );
+                })
               )}
             </div>
           )}

@@ -140,7 +140,7 @@ export default async function DashboardPage() {
               Download our desktop application to start logging your time, activity, and screenshots automatically.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%', maxWidth: '260px', marginTop: '0.75rem' }}>
-              <a href="/SigmaTracker.zip" download="SigmaTracker.zip" style={{
+              <a href="/SigmaTracker.msi" download="SigmaTracker.msi" style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -155,9 +155,9 @@ export default async function DashboardPage() {
                 boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.1)',
                 transition: 'background-color 0.2s ease'
               }}>
-                Windows Portable ZIP - 2.59 MB
+                MSI Installer - 4.68 MB
               </a>
-              <a href="/SigmaTracker.msi" download="SigmaTracker.msi" style={{
+              <a href="/SigmaTracker.zip" download="SigmaTracker.zip" style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -171,7 +171,7 @@ export default async function DashboardPage() {
                 textDecoration: 'none',
                 transition: 'background-color 0.2s ease'
               }}>
-                MSI Installer - 2.97 MB
+                Portable ZIP Backup - 4.01 MB
               </a>
             </div>
           </div>
