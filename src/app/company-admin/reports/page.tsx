@@ -57,7 +57,7 @@ export default async function ReportsPage({
       startTime: { gte: fromDate, lte: toDate }
     },
     select: { userId: true, startTime: true, duration: true },
-    take: 5000,
+    take: 1000,
   });
 
   const activities = await prisma.activityLog.findMany({
@@ -66,7 +66,7 @@ export default async function ReportsPage({
       createdAt: { gte: fromDate, lte: toDate }
     },
     select: { userId: true, productivityScore: true },
-    take: 5000,
+    take: 1000,
   });
 
   const screenshots = await prisma.screenshot.findMany({
@@ -75,7 +75,7 @@ export default async function ReportsPage({
       createdAt: { gte: fromDate, lte: toDate }
     },
     select: { userId: true },
-    take: 5000,
+    take: 1000,
   });
 
   // Build per-user report rows

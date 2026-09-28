@@ -27,7 +27,7 @@ export function LoginForm() {
       });
 
       if (!res.ok) {
-        const data = await res.json();
+        const data = await res.json() as { error?: string };
         setError(data.error || 'Invalid email or password');
       } else {
         const data = await res.json() as { user?: { role?: string } };

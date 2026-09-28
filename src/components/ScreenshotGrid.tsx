@@ -1,9 +1,61 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
-export function ScreenshotGrid({ screenshots }: { screenshots: any[] }) {
+type ScreenshotItem = {
+  id: string;
+  imageUrl: string;
+  createdAt: Date | string;
+};
+
+export function ScreenshotGrid({ screenshots }: { screenshots: ScreenshotItem[] }) {
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
+  const [loadedImages, setLoadedImages] = useState<Record<string, string>>({});
+
+  const imageSources = useMemo(() => {
+    return screenshots.map((screenshot) => ({
+      id: screenshot.id,
+      url: screenshot.imageUrl,
+    }));
+  }, [screenshots]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const objectUrls: string[] = [];
+
+    async function loadImages() {
+      const entries = await Promise.all(
+        imageSources.map(async (item) => {
+          if (!item.url || item.url.startsWith('data:') || item.url.startsWith('blob:')) {
+            return [item.id, item.url] as const;
+          }
+
+          try {
+            const res = await fetch(item.url, { credentials: 'include', cache: 'no-store' });
+            if (!res.ok) return [item.id, item.url] as const;
+            const blob = await res.blob();
+            if (!blob.type.startsWith('image/')) return [item.id, item.url] as const;
+            const objectUrl = URL.createObjectURL(blob);
+            objectUrls.push(objectUrl);
+            return [item.id, objectUrl] as const;
+          } catch {
+            return [item.id, item.url] as const;
+          }
+        })
+      );
+
+      if (!cancelled) {
+        setLoadedImages(Object.fromEntries(entries));
+      }
+    }
+
+    loadImages();
+
+    return () => {
+      cancelled = true;
+      objectUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [imageSources]);
 
   if (screenshots.length === 0) {
     return (
@@ -46,7 +98,7 @@ export function ScreenshotGrid({ screenshots }: { screenshots: any[] }) {
         {screenshots.map((s, idx) => (
           <div key={s.id} style={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
             <img 
-              src={s.imageUrl} 
+              src={loadedImages[s.id] || s.imageUrl} 
               alt="Screenshot" 
               style={{ width: '100%', height: 'auto', display: 'block', cursor: 'pointer', transition: 'opacity 0.2s' }} 
               onClick={() => setCurrentIndex(idx)}
@@ -99,7 +151,7 @@ export function ScreenshotGrid({ screenshots }: { screenshots: any[] }) {
           )}
 
           <img 
-            src={screenshots[currentIndex].imageUrl} 
+            src={loadedImages[screenshots[currentIndex].id] || screenshots[currentIndex].imageUrl} 
             alt="Full screen screenshot" 
             style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: '8px' }} 
             onClick={(e) => e.stopPropagation()}

@@ -9,10 +9,11 @@ function getPrisma() {
 
   try {
     const ctx = getRequestContext();
-    if (!ctx || !ctx.env || !ctx.env.DB) {
+    const env = ctx?.env as { DB?: D1Database } | undefined;
+    if (!env?.DB) {
       throw new Error("Cloudflare DB binding not found");
     }
-    const adapter = new PrismaD1(ctx.env.DB);
+    const adapter = new PrismaD1(env.DB);
     globalForPrisma.prisma = new PrismaClient({ adapter });
     return globalForPrisma.prisma;
   } catch (error) {
@@ -28,6 +29,6 @@ function getPrisma() {
 export const prisma = new Proxy({} as PrismaClient, {
   get(target, prop) {
     const client = getPrisma();
-    return (client as any)[prop];
+    return Reflect.get(client, prop);
   }
 });

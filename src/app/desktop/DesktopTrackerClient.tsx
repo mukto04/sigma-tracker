@@ -84,7 +84,7 @@ export default function DesktopTracker() {
     try {
       const res = await fetch('/api/auth/session');
       if (res.ok) {
-        const session = await res.json();
+        const session = await res.json() as any;
         if (session?.user?.id) {
           setRealUserId(session.user.id);
           realUserIdRef.current = session.user.id;
@@ -132,7 +132,7 @@ export default function DesktopTracker() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: loginEmail, password: loginPassword }),
       });
-      const data = await res.json();
+      const data = await res.json() as any;
       if (res.ok && (data.success || data.ok)) {
         if (data.user?.role !== 'EMPLOYEE') {
           setLoginError('Desktop tracker is only for employee accounts.');
@@ -366,7 +366,7 @@ export default function DesktopTracker() {
     }
   };
 
-  const fetchWithOfflineQueue = async (url: string, method: string, body: any) => {
+  const fetchWithOfflineQueue = async (url: string, method: string, body: any): Promise<any> => {
     if (navigator.onLine) {
       try {
         const response = await fetch(url, {
@@ -377,7 +377,7 @@ export default function DesktopTracker() {
         if (!response.ok) {
           let errorMessage = 'API Error';
           try {
-            const errorData = await response.json();
+            const errorData = await response.json() as any;
             errorMessage = errorData?.error || errorMessage;
           } catch {}
 
@@ -387,7 +387,7 @@ export default function DesktopTracker() {
 
           throw new Error(errorMessage);
         }
-        return await response.json();
+        return await response.json() as any;
       } catch (error) {
         enqueueRequest(url, method, body);
         return { success: false, queued: true, error: error instanceof Error ? error.message : 'Network error' };
@@ -429,15 +429,15 @@ export default function DesktopTracker() {
   useEffect(() => {
     const query = selectedDate ? `?date=${selectedDate}` : '';
     if (activeTab === 'screenshots') {
-      fetch(`/api/tracker/screenshots${query}`, { cache: 'no-store' }).then(res => res.json()).then(data => {
+      fetch(`/api/tracker/screenshots${query}`, { cache: 'no-store' }).then(res => res.json()).then((data: any) => {
         if (data.screenshots) setScreenshots(data.screenshots);
       });
     } else if (activeTab === 'timesheet') {
-      fetch(`/api/tracker/timesheets${query}`).then(res => res.json()).then(data => {
+      fetch(`/api/tracker/timesheets${query}`).then(res => res.json()).then((data: any) => {
         if (data.timeEntries) setTimesheets(data.timeEntries);
       });
     } else if (activeTab === 'summary') {
-      fetch(`/api/tracker/summary${query}`).then(res => res.json()).then(data => {
+      fetch(`/api/tracker/summary${query}`).then(res => res.json()).then((data: any) => {
         if (data.success) {
           setSummaryData(data.data);
           // Only initialize timers from DB if we haven't started a live session and we are viewing today
@@ -453,7 +453,7 @@ export default function DesktopTracker() {
 
   // Initial load — fetch summary data on mount regardless of active tab
   useEffect(() => {
-    fetch('/api/tracker/summary').then(res => res.json()).then(data => {
+    fetch('/api/tracker/summary').then(res => res.json()).then((data: any) => {
       if (data.success) {
         setSummaryData(data.data);
         setSecondsElapsed((prev) => prev === 0 ? data.data.totalSecondsToday || 0 : prev);
@@ -539,7 +539,7 @@ export default function DesktopTracker() {
               offlineCreatedAt: new Date().toISOString()
             });
             // Refresh summary charts
-            fetch('/api/tracker/summary').then(res => res.json()).then(data => {
+            fetch('/api/tracker/summary').then(res => res.json()).then((data: any) => {
               if (data.success) setSummaryData(data.data);
             });
           }
@@ -648,13 +648,13 @@ export default function DesktopTracker() {
 
   const refreshData = () => {
     const query = selectedDate ? `?date=${selectedDate}` : '';
-    fetch(`/api/tracker/screenshots${query}`, { cache: 'no-store' }).then(res => res.json()).then(data => {
+    fetch(`/api/tracker/screenshots${query}`, { cache: 'no-store' }).then(res => res.json()).then((data: any) => {
       if (data.screenshots) setScreenshots(data.screenshots);
     });
-    fetch(`/api/tracker/timesheets${query}`).then(res => res.json()).then(data => {
+    fetch(`/api/tracker/timesheets${query}`).then(res => res.json()).then((data: any) => {
       if (data.timeEntries) setTimesheets(data.timeEntries);
     });
-    fetch(`/api/tracker/summary${query}`).then(res => res.json()).then(data => {
+    fetch(`/api/tracker/summary${query}`).then(res => res.json()).then((data: any) => {
       if (data.success) {
         setSummaryData(data.data);
         if (trackingStateRef.current === 'STOPPED' && (!selectedDate || selectedDate === getLocalDateStr(new Date()))) {

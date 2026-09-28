@@ -79,7 +79,7 @@ export default async function CompanyAdminTimesheetsPage({
       project: { select: { name: true } },
     },
     orderBy: { startTime: 'asc' },
-    take: 1000,
+    take: 700,
   });
 
   // Map employee weekly breakdown

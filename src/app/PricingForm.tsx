@@ -20,7 +20,7 @@ export function PricingForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ employees, companyName, email }),
       });
-      const data = await response.json();
+      const data = await response.json() as { url?: string; error?: string };
       
       if (data.url) {
         window.location.href = data.url; // Redirect to Stripe Checkout
@@ -28,7 +28,7 @@ export function PricingForm() {
         alert(data.error || 'Failed to start checkout');
         setIsLoading(false);
       }
-    } catch (err) {
+    } catch {
       alert('Network error. Please try again.');
       setIsLoading(false);
     }

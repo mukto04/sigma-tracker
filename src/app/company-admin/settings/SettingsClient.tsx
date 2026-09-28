@@ -36,7 +36,7 @@ export default function SettingsClient() {
     fetch('/api/company-admin/settings', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error('Failed to load settings'))))
       .then((json) => {
-        if (!cancelled) setData(json);
+        if (!cancelled) setData(json as SettingsData);
       })
       .catch(() => {
         if (!cancelled) setError('Settings could not be loaded. Please refresh.');

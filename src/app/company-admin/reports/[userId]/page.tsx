@@ -63,13 +63,13 @@ export default async function EmployeeReportPage({
       where: { userId: user.id, startTime: { gte: fromDate, lte: toDate } },
       select: { id: true, startTime: true, endTime: true, duration: true },
       orderBy: { startTime: 'desc' },
-      take: 500,
+      take: 300,
     }),
     prisma.activityLog.findMany({
       where: { userId: user.id, createdAt: { gte: fromDate, lte: toDate } },
       select: { id: true, createdAt: true, productivityScore: true },
       orderBy: { createdAt: 'desc' },
-      take: 500,
+      take: 300,
     }),
     prisma.screenshot.findMany({
       where: { userId: user.id, createdAt: { gte: fromDate, lte: toDate } },
