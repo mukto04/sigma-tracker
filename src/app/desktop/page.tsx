@@ -101,16 +101,18 @@ export default function DesktopTracker() {
           } catch (e) {}
         } else {
           // No valid session — check if we have cached user
-          const cached = JSON.parse(localStorage.getItem('tracker_cached_user') || '{}');
-          if (cached?.id) {
-            setAuthStatus('logged_in'); // Use cached session
-          } else {
-            setAuthStatus('logged_out');
-          }
+          localStorage.removeItem('tracker_cached_user');
+          setRealUserId('');
+          realUserIdRef.current = '';
+          setUserProfile(null);
+          setAuthStatus('logged_out');
         }
       } else {
-        const cached = JSON.parse(localStorage.getItem('tracker_cached_user') || '{}');
-        setAuthStatus(cached?.id ? 'logged_in' : 'logged_out');
+        localStorage.removeItem('tracker_cached_user');
+        setRealUserId('');
+        realUserIdRef.current = '';
+        setUserProfile(null);
+        setAuthStatus('logged_out');
       }
     } catch (e) {
       // Offline - use cache if available
@@ -369,11 +371,23 @@ export default function DesktopTracker() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         });
-        if (!response.ok) throw new Error('API Error');
+        if (!response.ok) {
+          let errorMessage = 'API Error';
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData?.error || errorMessage;
+          } catch {}
+
+          if (response.status === 401 || response.status === 403 || response.status === 404) {
+            return { success: false, status: response.status, error: errorMessage };
+          }
+
+          throw new Error(errorMessage);
+        }
         return await response.json();
       } catch (error) {
         enqueueRequest(url, method, body);
-        return { success: false, queued: true };
+        return { success: false, queued: true, error: error instanceof Error ? error.message : 'Network error' };
       }
     } else {
       enqueueRequest(url, method, body);
@@ -634,15 +648,7 @@ export default function DesktopTracker() {
   const startTrackingLogic = async (isResume = false) => {
     if (!realUserId) return; // Prevent starting without user
 
-    setTrackingState('TRACKING');
-    if (typeof window !== 'undefined' && (window as any).electronAPI) {
-      (window as any).electronAPI.startTracking({ userId: realUserId });
-    }
-    
-    notify('Time Tracker Started', isResume ? 'Welcome back! Resuming timer.' : 'Timer has been started manually.');
-
     const generatedTimeEntryId = 'c' + Date.now().toString(36) + Math.random().toString(36).substring(2);
-    setTimeEntryId(generatedTimeEntryId);
 
     try {
       const data = await fetchWithOfflineQueue('/api/tracker/start', 'POST', {
@@ -652,14 +658,41 @@ export default function DesktopTracker() {
         offlineStartTime: new Date().toISOString()
       });
       
-      if (data && data.success) {
+      if (data?.status === 401 || data?.status === 403) {
+        setTrackingState('STOPPED');
+        setAuthStatus('logged_out');
+        setLoginError('Please sign in again before starting the tracker.');
+        try {
+          localStorage.removeItem('tracker_cached_user');
+        } catch {}
+        notify('Tracker Not Started', 'Please sign in again so time can sync to the server.');
+        return;
+      }
+
+      if (data && (data.success || data.queued)) {
+        setTimeEntryId(generatedTimeEntryId);
+        setTrackingState('TRACKING');
+        if (typeof window !== 'undefined' && (window as any).electronAPI) {
+          (window as any).electronAPI.startTracking({ userId: realUserId });
+        }
+
+        notify(
+          data.queued ? 'Time Tracker Started Offline' : 'Time Tracker Started',
+          data.queued ? 'Time will sync when the server connection is back.' : (isResume ? 'Welcome back! Resuming timer.' : 'Timer has been started manually.')
+        );
+
         if (data.idleTimeoutMinutes) {
           setIdleLimit(data.idleTimeoutMinutes);
         }
         refreshData();
+      } else {
+        setTrackingState('STOPPED');
+        notify('Tracker Not Started', data?.error || 'Could not start server time entry.');
       }
     } catch (error) {
       console.error('Failed to start tracking API:', error);
+      setTrackingState('STOPPED');
+      notify('Tracker Not Started', 'Could not start server time entry.');
     }
   };
 
