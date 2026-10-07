@@ -18,22 +18,14 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
-    "@auth/prisma-adapter": "^2.11.3",
-    "@aws-sdk/client-s3": "^3.1126.0",
     "@prisma/client": "^5.22.0",
     "@tauri-apps/plugin-updater": "^2.13.0",
     "bcryptjs": "^3.0.3",
-    "crypto-browserify": "^3.12.1",
     "jose": "^6.2.10",
     "next": "^14.2.15",
-    "os-browserify": "^0.3.0",
-    "path-browserify": "^1.0.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "stream-browserify": "^3.0.0",
-    "stripe": "^22.6.1",
-    "uiohook-napi": "^1.5.5",
-    "util": "^0.12.5"
+    "stripe": "^22.6.1"
   },
   "devDependencies": {
     "@cloudflare/next-on-pages": "^1.13.16",
@@ -43,15 +35,10 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "concurrently": "^10.0.5",
-    "cross-env": "^10.1.0",
-    "electron": "^44.1.1",
-    "electron-builder": "^26.15.3",
     "eslint": "^9",
     "eslint-config-next": "^14.2.15",
     "prisma": "^5.22.0",
     "typescript": "^5",
-    "wait-on": "^9.1.0",
     "wrangler": "^4.129.0"
   },
   "build": {

@@ -146,22 +146,6 @@ export default async function DashboardPage() {
               }}>
                 MSI Installer - 4.68 MB
               </a>
-              <a href="/SigmaTracker.zip" download="SigmaTracker.zip" style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                backgroundColor: '#1e293b',
-                color: 'white',
-                padding: '0.65rem 1rem',
-                borderRadius: '8px',
-                fontWeight: 600,
-                fontSize: '0.875rem',
-                textDecoration: 'none',
-                transition: 'background-color 0.2s ease'
-              }}>
-                Portable ZIP Backup - 4.01 MB
-              </a>
             </div>
           </div>
         </Card>
