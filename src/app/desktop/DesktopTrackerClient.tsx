@@ -521,16 +521,13 @@ export default function DesktopTracker() {
 
         if (typeof window !== 'undefined' && (window as any).electronAPI?.getActivityStats) {
           const stats = await (window as any).electronAPI.getActivityStats();
-          // System idle time is the primary signal. Native input event counters
-          // remain a useful secondary signal, but can be missed by Windows.
-          const expectedActions = diffSecs;
-          const totalActions = stats.keystrokes + stats.mouseClicks;
-          let intervalScore = Math.round((totalActions / expectedActions) * 100);
-          const systemIdleSeconds = await (window as any).electronAPI.getSystemIdleTime();
-          if (systemIdleSeconds <= Math.max(2, diffSecs + 1)) {
-            intervalScore = Math.max(70, intervalScore);
-          }
-          if (intervalScore > 100) intervalScore = 100;
+          // Each score is the share of the interval with actual input. This
+          // matches the per-second model used by established time trackers.
+          const activeInputSeconds = Math.min(
+            diffSecs,
+            Math.max(0, Number(stats.keystrokes) || 0, Number(stats.mouseClicks) || 0)
+          );
+          const intervalScore = Math.round((activeInputSeconds / diffSecs) * 100);
 
           const nativeApps = Array.isArray(stats.activeApps) ? stats.activeApps : [];
           if (nativeApps.length > 0) {
@@ -544,7 +541,7 @@ export default function DesktopTracker() {
             });
           }
           
-          const activeForInterval = Math.round(diffSecs * (intervalScore / 100));
+          const activeForInterval = activeInputSeconds;
           setActivitySeconds((prev) => prev + activeForInterval);
           setIdleSeconds((prev) => prev + Math.max(0, diffSecs - activeForInterval));
           
@@ -1191,7 +1188,7 @@ export default function DesktopTracker() {
                             {formatTime(displayActive)}
                           </div>
                           <div style={{ color: '#a3a3a3', fontSize: '14px' }}>
-                            {activePct}%
+                            {summaryData?.rollingActivityScore ?? activePct}%
                           </div>
                         </div>
                         <div style={{ height: '4px', background: '#333', marginTop: '8px', borderRadius: '2px', display: 'flex', overflow: 'hidden' }}>
@@ -1340,7 +1337,7 @@ export default function DesktopTracker() {
                       
                       {/* PRODUCTIVE VS UNPRODUCTIVE ACTIVITY BY HOUR (STACKED BAR) */}
                       <div style={{ position: 'relative', zIndex: hoveredChart === 'productivity' ? 10 : 1 }}>
-                        <div style={{ color: '#a3a3a3', fontSize: '13px', marginBottom: '6px' }}>Productive vs. unproductive activity by hour</div>
+                        <div style={{ color: '#a3a3a3', fontSize: '13px', marginBottom: '6px' }}>Active vs. idle input by hour</div>
                         <div style={{ display: 'flex', width: '100%', marginBottom: '6px', borderBottom: '1px solid #262626' }}>
                           {displayHours.map((h, idx) => (
                             <div key={idx} style={{ flex: 1, textAlign: 'center', fontSize: '10px', color: '#737373', borderLeft: idx > 0 ? '1px solid #262626' : 'none', padding: '2px 0' }}>
@@ -1367,7 +1364,7 @@ export default function DesktopTracker() {
                                 onMouseEnter={() => { setHoveredHour(h); setHoveredChart('productivity'); }}
                                 onMouseLeave={() => { setHoveredHour(null); setHoveredChart(null); }}
                               >
-                                {/* Productive (Active) Green Bar on Bottom */}
+                                {/* Active input (green) and idle input (yellow). */}
                                 <div style={{ background: '#22c55e', height: `${activeH}%`, width: '100%', transition: 'height 0.2s', borderRadius: idleH === 0 ? '2px 2px 0 0' : '0' }}></div>
                                 {/* Unproductive (Idle) Yellow Bar on Top */}
                                 <div style={{ background: '#eab308', height: `${idleH}%`, width: '100%', transition: 'height 0.2s', borderRadius: '2px 2px 0 0' }}></div>
@@ -1404,14 +1401,14 @@ export default function DesktopTracker() {
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#fff', fontSize: '12px', marginBottom: '4px' }}>
                                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                       <span style={{ width: '10px', height: '10px', background: '#22c55e', borderRadius: '2px', display: 'inline-block' }}></span>
-                                      Productive
+                                      Active input
                                     </span>
                                     <span style={{ color: '#a3a3a3' }}>{formatTime(detail?.activeSeconds || 0)}</span>
                                   </div>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#fff', fontSize: '12px' }}>
                                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                       <span style={{ width: '10px', height: '10px', background: '#eab308', borderRadius: '2px', display: 'inline-block' }}></span>
-                                      Unproductive
+                                      Idle input
                                     </span>
                                     <span style={{ color: '#a3a3a3' }}>{formatTime(detail?.idleSeconds || 0)}</span>
                                   </div>

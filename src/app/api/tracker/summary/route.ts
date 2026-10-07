@@ -144,7 +144,19 @@ export async function GET(req: Request) {
     const totalActivitySecondsToday = dailyActivity.activeSeconds;
     const totalIdleSecondsToday = dailyActivity.idleSeconds;
 
-    // Calculate average activity percentage score today
+    // A rolling ten-minute average prevents the score from jumping with every
+    // 10-second sample while keeping it responsive to current work.
+    const rollingStart = new Date(Math.max(targetDate.getTime(), Date.now() - 10 * 60 * 1000));
+    const rollingEntries = timeEntries.filter((entry) => {
+      const end = entry.endTime?.getTime() ?? Date.now();
+      return end >= rollingStart.getTime();
+    });
+    const rollingTrackedSeconds = totalTrackedSeconds(rollingEntries, rollingStart, targetDateEnd);
+    const rollingLogs = activityLogs.filter((log) => log.createdAt >= rollingStart);
+    const rollingActivityScore = activityMetrics(rollingLogs, rollingTrackedSeconds).averageScore;
+
+    // The daily average remains for reports; the desktop UI uses the rolling
+    // value so a single sample cannot dominate the visible percentage.
     const avgActivityScore = dailyActivity.averageScore;
 
     // Calculate daily totals for the past 7 days and future 7 days (15 days total)
@@ -192,6 +204,7 @@ export async function GET(req: Request) {
         totalActivitySecondsToday,
         totalIdleSecondsToday,
         avgActivityScore,
+        rollingActivityScore,
         weeklyTotals,
         avatarUrl: user?.avatarUrl || null
       }
