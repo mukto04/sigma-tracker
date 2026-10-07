@@ -45,6 +45,11 @@ next-env.d.ts
 /src-tauri/target/
 /src-tauri/updater.key
 /src-tauri/updater.key.pub
+/src-tauri/updater-v2.key
+/src-tauri/updater-v2.key.pub
+/src-tauri/updater-v3.key
+/src-tauri/updater-v3.key.pub
+/src-tauri/target-updater/
 prisma/dev.db
 *.db
 *.db-journal  
