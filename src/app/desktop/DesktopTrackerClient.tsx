@@ -518,10 +518,11 @@ export default function DesktopTracker() {
 
         if (typeof window !== 'undefined' && (window as any).electronAPI?.getActivityStats) {
           const stats = await (window as any).electronAPI.getActivityStats();
-          // Benchmark: 3 inputs per second = 100% active
-          const expectedActions = diffSecs * 3;
+          // The native layer reports real input changes. Score them against the
+          // elapsed interval so a delayed browser timer cannot distort activity.
+          const expectedActions = diffSecs;
           const totalActions = stats.keystrokes + stats.mouseClicks;
-          let intervalScore = Math.floor((totalActions / expectedActions) * 100);
+          let intervalScore = Math.round((totalActions / expectedActions) * 100);
           if (intervalScore > 100) intervalScore = 100;
           
           if (intervalScore > 0) {

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import DateFilter from './DateFilter';
 import { clampDateRange, requireAdminCompany } from '@/lib/company-admin';
+import { activityMetrics, totalTrackedSeconds } from '@/lib/tracker-metrics';
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
@@ -54,9 +55,10 @@ export default async function ReportsPage({
   const timeEntries = await prisma.timeEntry.findMany({
     where: {
       userId: { in: userIds },
-      startTime: { gte: fromDate, lte: toDate }
+      startTime: { lte: toDate },
+      OR: [{ endTime: null }, { endTime: { gte: fromDate } }],
     },
-    select: { userId: true, startTime: true, duration: true },
+    select: { userId: true, startTime: true, endTime: true, duration: true },
     take: 1000,
   });
 
@@ -65,7 +67,7 @@ export default async function ReportsPage({
       userId: { in: userIds },
       createdAt: { gte: fromDate, lte: toDate }
     },
-    select: { userId: true, productivityScore: true },
+    select: { userId: true, productivityScore: true, createdAt: true, activeApps: true },
     take: 1000,
   });
 
@@ -81,21 +83,10 @@ export default async function ReportsPage({
   // Build per-user report rows
   const rows = users.map(user => {
     const userEntries = timeEntries.filter(e => e.userId === user.id);
-    let totalSeconds = 0;
-    userEntries.forEach(e => {
-      if (e.duration !== null) {
-        totalSeconds += e.duration;
-      } else {
-        let ongoing = Math.floor((Date.now() - new Date(e.startTime).getTime()) / 1000);
-        if (ongoing > 24 * 3600) ongoing = 0;
-        totalSeconds += ongoing;
-      }
-    });
+    const totalSeconds = totalTrackedSeconds(userEntries, fromDate, toDate);
 
     const userActivities = activities.filter(a => a.userId === user.id);
-    const avgActivity = userActivities.length > 0
-      ? Math.round(userActivities.reduce((acc, a) => acc + a.productivityScore, 0) / userActivities.length)
-      : 0;
+    const avgActivity = activityMetrics(userActivities, totalSeconds).averageScore;
 
     const screenshotCount = screenshots.filter(s => s.userId === user.id).length;
 

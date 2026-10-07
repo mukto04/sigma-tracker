@@ -2,6 +2,7 @@ import React from 'react';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import { requireAdminCompany } from '@/lib/company-admin';
+import { aggregateAppUsage } from '@/lib/tracker-metrics';
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
@@ -53,6 +54,8 @@ export default async function CompanyAdminAppsPage({
   // Fetch all activity logs in range safely
   let logs: {
     activeApps: string;
+    createdAt: Date;
+    productivityScore: number;
     user: { id: string; name: string | null; email: string } | null;
   }[] = [];
   try {
@@ -64,6 +67,8 @@ export default async function CompanyAdminAppsPage({
         },
         select: {
           activeApps: true,
+          createdAt: true,
+          productivityScore: true,
           user: { select: { id: true, name: true, email: true } },
         },
         take: 500,
@@ -84,38 +89,25 @@ export default async function CompanyAdminAppsPage({
   const appMap: Record<string, AppStat> = {};
   let totalCompanySeconds = 0;
 
-  (logs || []).forEach(log => {
-    try {
-      const apps = JSON.parse(log.activeApps || '[]');
-      if (Array.isArray(apps)) {
-        apps.forEach((a: { name: string; duration: number }) => {
-          if (!a || !a.name) return;
-          const duration = a.duration || 0;
-          totalCompanySeconds += duration;
+  const logsByUser = new Map<string, typeof logs>();
+  logs.forEach((log) => {
+    if (!log.user) return;
+    const current = logsByUser.get(log.user.id) || [];
+    current.push(log);
+    logsByUser.set(log.user.id, current);
+  });
 
-          if (!appMap[a.name]) {
-            appMap[a.name] = {
-              name: a.name,
-              totalSeconds: 0,
-              userMap: {},
-            };
-          }
-
-          appMap[a.name].totalSeconds += duration;
-
-          if (log.user) {
-            const uId = log.user.id || 'unknown';
-            if (!appMap[a.name].userMap[uId]) {
-              appMap[a.name].userMap[uId] = {
-                user: log.user,
-                seconds: 0,
-              };
-            }
-            appMap[a.name].userMap[uId].seconds += duration;
-          }
-        });
-      }
-    } catch {}
+  logsByUser.forEach((userLogs) => {
+    const user = userLogs[0]?.user;
+    if (!user) return;
+    const usage = aggregateAppUsage(userLogs as Array<{ createdAt: Date; productivityScore: number; activeApps: string }>);
+    Object.entries(usage).forEach(([name, duration]) => {
+      totalCompanySeconds += duration;
+      if (!appMap[name]) appMap[name] = { name, totalSeconds: 0, userMap: {} };
+      appMap[name].totalSeconds += duration;
+      if (!appMap[name].userMap[user.id]) appMap[name].userMap[user.id] = { user, seconds: 0 };
+      appMap[name].userMap[user.id].seconds += duration;
+    });
   });
 
   const appList = Object.values(appMap)

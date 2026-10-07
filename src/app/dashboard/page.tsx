@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/Card';
 import styles from './dashboard.module.css';
 import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
+import { activityMetrics, totalTrackedSeconds } from '@/lib/tracker-metrics';
 
 export const runtime = 'edge';
 
@@ -42,30 +43,18 @@ export default async function DashboardPage() {
     }
   });
 
-  let totalSecondsToday = 0;
-  todayEntries.forEach(entry => {
-    if (entry.duration !== null) {
-      totalSecondsToday += entry.duration;
-    } else {
-      let ongoing = Math.floor((Date.now() - new Date(entry.startTime).getTime()) / 1000);
-      if (ongoing > 24 * 3600) ongoing = 0;
-      totalSecondsToday += ongoing;
-    }
-  });
+  const todayEnd = new Date(today);
+  todayEnd.setHours(23, 59, 59, 999);
+  const totalSecondsToday = totalTrackedSeconds(todayEntries, today, todayEnd);
   const hours = Math.floor(totalSecondsToday / 3600);
   const minutes = Math.floor((totalSecondsToday % 3600) / 60);
 
-  const activityAgg = await prisma.activityLog.aggregate({
-    _avg: { productivityScore: true },
-    where: {
-      userId: user.id,
-      createdAt: { gte: today }
-    }
+  const activityLogs = await prisma.activityLog.findMany({
+    where: { userId: user.id, createdAt: { gte: today, lte: todayEnd } },
+    select: { createdAt: true, productivityScore: true, activeApps: true },
+    take: 1000,
   });
-
-  const avgActivity = activityAgg._avg.productivityScore 
-    ? Math.round(activityAgg._avg.productivityScore) 
-    : 0;
+  const avgActivity = activityMetrics(activityLogs, totalSecondsToday).averageScore;
 
   return (
     <div className={styles.container}>

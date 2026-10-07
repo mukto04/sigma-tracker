@@ -2,6 +2,7 @@ import React from 'react';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import { requireAdminCompany } from '@/lib/company-admin';
+import { activityMetrics, aggregateAppUsage, totalTrackedSeconds } from '@/lib/tracker-metrics';
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
@@ -36,7 +37,7 @@ export default async function CompanyAdminDashboard() {
     project: { name: string } | null;
   }[] = [];
   let avgActivity = 0;
-  let activitiesToday: { activeApps: string; userId: string; createdAt: Date }[] = [];
+  let activitiesToday: { activeApps: string; userId: string; createdAt: Date; productivityScore: number }[] = [];
   let screenshotsToday: {
     id: string;
     imageUrl: string;
@@ -99,7 +100,7 @@ export default async function CompanyAdminDashboard() {
             userId: { in: employeeIds },
             createdAt: { gte: today }
           },
-          select: { activeApps: true, userId: true, createdAt: true },
+          select: { activeApps: true, userId: true, createdAt: true, productivityScore: true },
           orderBy: { createdAt: 'desc' },
           take: 100
         }).catch(() => []),
@@ -132,29 +133,15 @@ export default async function CompanyAdminDashboard() {
 
   const employees = company.users || [];
 
-  let totalSecondsToday = 0;
-  (timeEntriesToday || []).forEach(entry => {
-    if (entry.duration !== null && entry.duration !== undefined) {
-      totalSecondsToday += entry.duration;
-    } else if (entry.startTime) {
-      let ongoing = Math.floor((Date.now() - new Date(entry.startTime).getTime()) / 1000);
-      if (ongoing > 24 * 3600 || isNaN(ongoing)) ongoing = 0;
-      totalSecondsToday += ongoing;
-    }
-  });
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(todayStart);
+  todayEnd.setHours(23, 59, 59, 999);
+  const totalSecondsToday = totalTrackedSeconds(timeEntriesToday, todayStart, todayEnd);
+  avgActivity = activityMetrics(activitiesToday, totalSecondsToday).averageScore;
 
   // Aggregate Company-wide Top Active Apps (Sampled)
-  const globalAppTimes: Record<string, number> = {};
-  (activitiesToday || []).forEach(log => {
-    try {
-      const apps = JSON.parse(log.activeApps || '[]');
-      apps.forEach((a: { name: string; duration: number }) => {
-        if (a.name) {
-          globalAppTimes[a.name] = (globalAppTimes[a.name] || 0) + (a.duration || 0);
-        }
-      });
-    } catch {}
-  });
+  const globalAppTimes = aggregateAppUsage(activitiesToday);
 
   const totalAppSeconds = Object.values(globalAppTimes).reduce((a, b) => a + b, 0);
   const colorPalette = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'];
@@ -172,16 +159,7 @@ export default async function CompanyAdminDashboard() {
   // Calculate per-employee stats for today
   const employeeStats = employees.map((emp) => {
     const empEntries = (timeEntriesToday || []).filter(e => e.userId === emp.id);
-    let empSeconds = 0;
-    empEntries.forEach(e => {
-      if (e.duration !== null && e.duration !== undefined) {
-        empSeconds += e.duration;
-      } else if (e.startTime) {
-        let ongoing = Math.floor((Date.now() - new Date(e.startTime).getTime()) / 1000);
-        if (ongoing > 24 * 3600 || isNaN(ongoing)) ongoing = 0;
-        empSeconds += ongoing;
-      }
-    });
+    const empSeconds = totalTrackedSeconds(empEntries, todayStart, todayEnd);
     const empLatestActivity = (activitiesToday || []).find(a => a.userId === emp.id);
     
     // Check if active in the last 10 minutes

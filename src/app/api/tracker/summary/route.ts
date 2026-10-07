@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
+import { activityMetrics, aggregateAppUsage, totalTrackedSeconds } from '@/lib/tracker-metrics';
 
 export const runtime = 'edge';
 
@@ -28,7 +29,7 @@ export async function GET(req: Request) {
 
     // Fetch today's time entries
     const timeEntries = await prisma.timeEntry.findMany({
-      where: { userId, startTime: { gte: targetDate, lte: targetDateEnd } }
+      where: { userId, startTime: { lte: targetDateEnd }, OR: [{ endTime: null }, { endTime: { gte: targetDate } }] }
     });
 
     // Fetch today's activity logs
@@ -56,7 +57,7 @@ export async function GET(req: Request) {
     const hourlyApps = [];
     const hourlyDetails: any[] = [];
     const appColors: any = {};
-    const globalAppTimes: any = {};
+    const globalAppTimes: Record<string, number> = aggregateAppUsage(activityLogs);
 
     const getRandomColor = (name: string) => {
       if (appColors[name]) return appColors[name];
@@ -68,25 +69,11 @@ export async function GET(req: Request) {
 
     for (let h = startHour; h <= endHour; h++) {
       let secondsInHour = 0;
-      timeEntries.forEach(entry => {
-        const entryStart = new Date(entry.startTime).getTime();
-        const entryEnd = entry.endTime ? new Date(entry.endTime).getTime() : Date.now();
-        
-        const hourStart = new Date(today);
+      const hourStart = new Date(today);
         hourStart.setHours(h, 0, 0, 0);
-        const hourStartMs = hourStart.getTime();
-        
-        const hourEnd = new Date(today);
+      const hourEnd = new Date(today);
         hourEnd.setHours(h, 59, 59, 999);
-        const hourEndMs = hourEnd.getTime();
-
-        const overlapStart = Math.max(entryStart, hourStartMs);
-        const overlapEnd = Math.min(entryEnd, hourEndMs);
-
-        if (overlapEnd > overlapStart) {
-          secondsInHour += (overlapEnd - overlapStart) / 1000;
-        }
-      });
+      secondsInHour = totalTrackedSeconds(timeEntries, hourStart, hourEnd);
       let timePercent = Math.min(100, Math.floor((secondsInHour / 3600) * 100));
       hourlyTimeLogged.push(timePercent);
 
@@ -99,18 +86,8 @@ export async function GET(req: Request) {
       const hourAppMap: any = {};
       
       if (logsInHour.length > 0) {
-        const sum = logsInHour.reduce((acc, log) => acc + log.productivityScore, 0);
-        avgProductivity = Math.floor(sum / logsInHour.length);
-
-        logsInHour.forEach(log => {
-          try {
-            const apps = JSON.parse(log.activeApps || '[]');
-            apps.forEach((a: any) => {
-              hourAppMap[a.name] = (hourAppMap[a.name] || 0) + a.duration;
-              globalAppTimes[a.name] = (globalAppTimes[a.name] || 0) + a.duration;
-            });
-          } catch(e) {}
-        });
+        avgProductivity = activityMetrics(logsInHour, Math.floor(secondsInHour)).averageScore;
+        Object.assign(hourAppMap, aggregateAppUsage(logsInHour));
       }
       hourlyProductivity.push(avgProductivity);
 
@@ -127,10 +104,9 @@ export async function GET(req: Request) {
       }
 
       // Calculate active vs idle seconds for this hour
-      const activeLogsInHour = logsInHour.filter(l => l.productivityScore > 0).length;
-      const rawActiveSecs = activeLogsInHour * 10;
-      const activeSecs = Math.min(Math.floor(secondsInHour), rawActiveSecs);
-      const idleSecs = Math.max(0, Math.floor(secondsInHour) - activeSecs);
+      const hourActivity = activityMetrics(logsInHour, Math.floor(secondsInHour));
+      const activeSecs = hourActivity.activeSeconds;
+      const idleSecs = hourActivity.idleSeconds;
 
       const appsDetailedList = Object.keys(hourAppMap).map(name => ({
         name,
@@ -161,32 +137,15 @@ export async function GET(req: Request) {
       .slice(0, 5);
 
     // Calculate total time logged today
-    let totalSecondsToday = 0;
-    
-    // Sort by startTime descending (newest first)
-    timeEntries.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
-
-    timeEntries.forEach((entry, index) => {
-      if (entry.duration !== null) {
-        totalSecondsToday += entry.duration;
-      } else if (index === 0) {
-        // Only the absolute latest entry can be ongoing.
-        let ongoing = Math.floor((Date.now() - new Date(entry.startTime).getTime()) / 1000);
-        if (ongoing > 24 * 3600) ongoing = 0; // If it's over 24 hours, it's an orphaned crashed session
-        totalSecondsToday += ongoing;
-      }
-    });
+    const totalSecondsToday = totalTrackedSeconds(timeEntries, targetDate, targetDateEnd);
 
     // Calculate total activity & idle time today (strictly bounded by totalSecondsToday)
-    const activeLogsCount = activityLogs.filter(log => log.productivityScore > 0).length;
-    const rawActivitySeconds = activeLogsCount * 10;
-    const totalActivitySecondsToday = Math.min(totalSecondsToday, rawActivitySeconds);
-    const totalIdleSecondsToday = Math.max(0, totalSecondsToday - totalActivitySecondsToday);
+    const dailyActivity = activityMetrics(activityLogs, totalSecondsToday);
+    const totalActivitySecondsToday = dailyActivity.activeSeconds;
+    const totalIdleSecondsToday = dailyActivity.idleSeconds;
 
     // Calculate average activity percentage score today
-    const avgActivityScore = activityLogs.length > 0
-      ? Math.round(activityLogs.reduce((acc, l) => acc + l.productivityScore, 0) / activityLogs.length)
-      : 0;
+    const avgActivityScore = dailyActivity.averageScore;
 
     // Calculate daily totals for the past 7 days and future 7 days (15 days total)
     const weekStart = new Date(today);

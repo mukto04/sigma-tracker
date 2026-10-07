@@ -265,7 +265,7 @@ mod commands {
                     keystrokes_clone.fetch_add(1, Ordering::Relaxed);
                 }
 
-                // Track active foreground application every 2 seconds
+                // The worker runs once per second, so each sample is one second.
                 let app_name = get_active_app_name_native();
                 if !app_name.is_empty() {
                     if let Ok(mut map) = active_apps_clone.lock() {
