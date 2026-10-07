@@ -183,6 +183,7 @@ export default function DesktopTracker() {
   const [screenshotImages, setScreenshotImages] = useState<Record<string, string>>({});
   const [timesheets, setTimesheets] = useState<any[]>([]);
   const [summaryData, setSummaryData] = useState<any>(null);
+  const [liveAppUsage, setLiveAppUsage] = useState<Record<string, number>>({});
   const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
   const [hoveredHour, setHoveredHour] = useState<number | null>(null);
   const [hoveredChart, setHoveredChart] = useState<'logged' | 'productivity' | 'apps' | null>(null);
@@ -317,6 +318,7 @@ export default function DesktopTracker() {
         const response = await fetch(item.url, {
           method: item.method,
           headers: item.headers,
+          credentials: 'include',
           body: JSON.stringify(item.body),
         });
         if (!response.ok) throw new Error('API Error during sync');
@@ -372,6 +374,7 @@ export default function DesktopTracker() {
         const response = await fetch(url, {
           method,
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify(body),
         });
         if (!response.ok) {
@@ -518,12 +521,28 @@ export default function DesktopTracker() {
 
         if (typeof window !== 'undefined' && (window as any).electronAPI?.getActivityStats) {
           const stats = await (window as any).electronAPI.getActivityStats();
-          // The native layer reports real input changes. Score them against the
-          // elapsed interval so a delayed browser timer cannot distort activity.
+          // System idle time is the primary signal. Native input event counters
+          // remain a useful secondary signal, but can be missed by Windows.
           const expectedActions = diffSecs;
           const totalActions = stats.keystrokes + stats.mouseClicks;
           let intervalScore = Math.round((totalActions / expectedActions) * 100);
+          const systemIdleSeconds = await (window as any).electronAPI.getSystemIdleTime();
+          if (systemIdleSeconds <= Math.max(2, diffSecs + 1)) {
+            intervalScore = Math.max(70, intervalScore);
+          }
           if (intervalScore > 100) intervalScore = 100;
+
+          const nativeApps = Array.isArray(stats.activeApps) ? stats.activeApps : [];
+          if (nativeApps.length > 0) {
+            setLiveAppUsage((previous) => {
+              const next = { ...previous };
+              nativeApps.forEach((app: { name?: string; duration?: number }) => {
+                if (!app?.name || !Number.isFinite(app.duration)) return;
+                next[app.name] = (next[app.name] || 0) + Math.max(0, Number(app.duration));
+              });
+              return next;
+            });
+          }
           
           const activeForInterval = Math.round(diffSecs * (intervalScore / 100));
           setActivitySeconds((prev) => prev + activeForInterval);
@@ -534,7 +553,7 @@ export default function DesktopTracker() {
             await fetchWithOfflineQueue('/api/tracker/activity', 'POST', {
               userId: realUserId,
               productivityScore: intervalScore,
-              activeApps: JSON.stringify(stats.activeApps || []),
+              activeApps: JSON.stringify(nativeApps),
               offlineCreatedAt: new Date().toISOString()
             });
             // Refresh summary charts
@@ -832,6 +851,22 @@ export default function DesktopTracker() {
   const displayTotalSeconds = isTodaySelected ? secondsElapsed : (summaryData?.totalSecondsToday || 0);
   const displayActivitySeconds = isTodaySelected ? activitySeconds : (summaryData?.totalActivitySecondsToday || 0);
   const displayIdleSeconds = isTodaySelected ? idleSeconds : (summaryData?.totalIdleSecondsToday || 0);
+  const liveAppTotal = Object.values(liveAppUsage).reduce((total, seconds) => total + seconds, 0);
+  const liveTopApps = Object.entries(liveAppUsage)
+    .map(([fullName, seconds], index) => {
+      const colors = ['#3b82f6', '#22c55e', '#eab308', '#a855f7', '#ec4899'];
+      const color = colors[index % colors.length];
+      return {
+        name: fullName.substring(0, 2).toUpperCase(),
+        fullName,
+        color: `${color}33`,
+        textColor: color,
+        percent: liveAppTotal > 0 ? Math.round((seconds / liveAppTotal) * 100) : 0,
+      };
+    })
+    .sort((a, b) => b.percent - a.percent)
+    .slice(0, 5);
+  const displayTopApps = summaryData?.topApps?.length ? summaryData.topApps : liveTopApps;
   const isMacClient = typeof window !== 'undefined' && (window as any).electronAPI?.platform === 'darwin';
 
   // Show loading screen while checking session
@@ -1156,7 +1191,7 @@ export default function DesktopTracker() {
                             {formatTime(displayActive)}
                           </div>
                           <div style={{ color: '#a3a3a3', fontSize: '14px' }}>
-                            {summaryData?.avgActivityScore ?? 0}%
+                            {activePct}%
                           </div>
                         </div>
                         <div style={{ height: '4px', background: '#333', marginTop: '8px', borderRadius: '2px', display: 'flex', overflow: 'hidden' }}>
@@ -1181,7 +1216,7 @@ export default function DesktopTracker() {
                 <div>
                   <div style={{ color: '#a3a3a3', fontSize: '13px', marginBottom: '8px' }}>Top active apps</div>
                   <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                    {(summaryData?.topApps || []).map((app: any, i: number) => (
+                    {displayTopApps.map((app: any, i: number) => (
                       <div key={i} style={{ textAlign: 'center', position: 'relative' }}
                         onMouseEnter={(e) => {
                           const tip = e.currentTarget.querySelector('.app-tooltip') as HTMLElement;
@@ -1316,8 +1351,13 @@ export default function DesktopTracker() {
                         <div style={{ display: 'flex', alignItems: 'flex-end', height: '55px', gap: '4px', borderBottom: '1px solid #333', position: 'relative' }}>
                           {displayHours.map((h, idx) => {
                             const d = localHourlyDetails?.[h];
-                            const activeSecs = d?.activeSeconds || 0;
-                            const idleSecs = d?.idleSeconds || 0;
+                            const isLiveHour = isTodaySelected && trackingState === 'TRACKING' && h === new Date().getHours();
+                            const activeSecs = isLiveHour
+                              ? Math.max(d?.activeSeconds || 0, displayActivitySeconds)
+                              : (d?.activeSeconds || 0);
+                            const idleSecs = isLiveHour
+                              ? Math.max(d?.idleSeconds || 0, displayIdleSeconds)
+                              : (d?.idleSeconds || 0);
                             const activeH = Math.min(100, Math.floor((activeSecs / 3600) * 100));
                             const idleH = Math.min(100, Math.floor((idleSecs / 3600) * 100));
                             return (
