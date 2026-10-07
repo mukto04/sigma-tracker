@@ -431,7 +431,7 @@ export default function DesktopTracker() {
 
   // Fetch data when switching tabs or changing date
   useEffect(() => {
-    const query = selectedDate ? `?date=${selectedDate}` : '';
+    const query = getTrackerQuery();
     if (activeTab === 'screenshots') {
       fetch(`/api/tracker/screenshots${query}`, { cache: 'no-store' }).then(res => res.json()).then((data: any) => {
         if (data.screenshots) setScreenshots(data.screenshots);
@@ -457,7 +457,7 @@ export default function DesktopTracker() {
 
   // Initial load — fetch summary data on mount regardless of active tab
   useEffect(() => {
-    fetch('/api/tracker/summary').then(res => res.json()).then((data: any) => {
+    fetch(`/api/tracker/summary${getTrackerQuery()}`).then(res => res.json()).then((data: any) => {
       if (data.success) {
         setSummaryData(data.data);
         setSecondsElapsed((prev) => prev === 0 ? data.data.totalSecondsToday || 0 : prev);
@@ -492,6 +492,7 @@ export default function DesktopTracker() {
               setActivitySeconds(0);
               setIdleSeconds(0);
               setLiveAppUsage({});
+              setSummaryData(null);
               setSelectedDate(null);
               trackingDayRef.current = new Date().getDate();
               await startTrackingLogic(false);
@@ -564,7 +565,7 @@ export default function DesktopTracker() {
             // heavier than an activity write, so refresh it at most once a minute.
             if (now - lastSummaryRefreshRef.current >= 60_000) {
               lastSummaryRefreshRef.current = now;
-              fetch('/api/tracker/summary').then(res => res.json()).then((data: any) => {
+              fetch(`/api/tracker/summary${getTrackerQuery()}`).then(res => res.json()).then((data: any) => {
                 if (data.success) setSummaryData(data.data);
               }).catch(() => undefined);
             }
@@ -672,8 +673,16 @@ export default function DesktopTracker() {
     return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
   };
 
+  const getTrackerQuery = () => {
+    const params = new URLSearchParams({
+      date: selectedDate || getLocalDateStr(),
+      tzOffset: String(new Date().getTimezoneOffset()),
+    });
+    return `?${params.toString()}`;
+  };
+
   const refreshData = () => {
-    const query = selectedDate ? `?date=${selectedDate}` : '';
+    const query = getTrackerQuery();
     fetch(`/api/tracker/screenshots${query}`, { cache: 'no-store' }).then(res => res.json()).then((data: any) => {
       if (data.screenshots) setScreenshots(data.screenshots);
     });

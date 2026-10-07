@@ -16,15 +16,24 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const dateParam = searchParams.get('date');
+    const rawOffset = Number(searchParams.get('tzOffset'));
+    const timezoneOffsetMinutes = Number.isFinite(rawOffset) && Math.abs(rawOffset) <= 14 * 60
+      ? rawOffset
+      : 0;
     let targetDate = new Date();
     if (dateParam) {
       const parts = dateParam.split('-');
-      targetDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), 0, 0, 0, 0);
+      if (parts.length !== 3) {
+        return NextResponse.json({ error: 'Invalid date' }, { status: 400 });
+      }
+      // The client sends its Date#getTimezoneOffset(). Convert its local
+      // midnight to UTC so tracker days are not split by the Worker timezone.
+      targetDate = new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])) + timezoneOffsetMinutes * 60_000);
     } else {
       targetDate.setHours(0, 0, 0, 0);
     }
     const targetDateEnd = new Date(targetDate);
-    targetDateEnd.setHours(23, 59, 59, 999);
+    targetDateEnd.setTime(targetDate.getTime() + 24 * 60 * 60 * 1000 - 1);
     const today = targetDate; // keeping variable name for compatibility
 
     // Fetch today's time entries
@@ -54,7 +63,8 @@ export async function GET(req: Request) {
     // pass keeps Worker CPU predictable as a company grows.
     const activityLogsByHour = Array.from({ length: 24 }, () => [] as typeof activityLogs);
     for (const log of activityLogs) {
-      activityLogsByHour[new Date(log.createdAt).getHours()].push(log);
+      const localHour = new Date(log.createdAt.getTime() - timezoneOffsetMinutes * 60_000).getUTCHours();
+      activityLogsByHour[localHour].push(log);
     }
 
     // We'll generate an array of 24 hours (00:00 to 23:59)
@@ -173,7 +183,10 @@ export async function GET(req: Request) {
       where: { userId, startTime: { gte: weekStart } }
     });
 
-    const getLocalISODate = (d: Date) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    const getLocalISODate = (d: Date) => {
+      const local = new Date(d.getTime() - timezoneOffsetMinutes * 60_000);
+      return local.getUTCFullYear() + '-' + String(local.getUTCMonth() + 1).padStart(2, '0') + '-' + String(local.getUTCDate()).padStart(2, '0');
+    };
     const todayLocalStr = getLocalISODate(today);
 
     const weeklyTotals: { date: string; seconds: number }[] = [];
