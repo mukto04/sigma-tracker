@@ -525,11 +525,9 @@ export default function DesktopTracker() {
           let intervalScore = Math.round((totalActions / expectedActions) * 100);
           if (intervalScore > 100) intervalScore = 100;
           
-          if (intervalScore > 0) {
-            setActivitySeconds(prev => prev + diffSecs);
-          } else {
-            setIdleSeconds(prev => prev + diffSecs);
-          }
+          const activeForInterval = Math.round(diffSecs * (intervalScore / 100));
+          setActivitySeconds((prev) => prev + activeForInterval);
+          setIdleSeconds((prev) => prev + Math.max(0, diffSecs - activeForInterval));
           
           // Send to DB
           if (realUserId) {
