@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma';
 
 export const MAX_SCREENSHOT_BYTES = 450 * 1024;
 export const SCREENSHOT_RETENTION_DAYS = 14;
+const screenshotPruneSchedule = new Map<string, number>();
+const SCREENSHOT_PRUNE_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 type R2BucketLike = {
   put(
@@ -109,6 +111,12 @@ export function getR2KeyFromImageUrl(imageUrl: string) {
 }
 
 export async function pruneOldScreenshots(env: TrackerEnv, userId: string) {
+  const now = Date.now();
+  const lastPrunedAt = screenshotPruneSchedule.get(userId) ?? 0;
+  if (now - lastPrunedAt < SCREENSHOT_PRUNE_INTERVAL_MS) return;
+
+  // Avoid a D1 query plus R2 delete batch for every captured image.
+  screenshotPruneSchedule.set(userId, now);
   const cutoff = new Date(Date.now() - SCREENSHOT_RETENTION_DAYS * 24 * 60 * 60 * 1000);
   const oldScreenshots = await prisma.screenshot.findMany({
     where: { userId, createdAt: { lt: cutoff } },

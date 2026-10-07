@@ -97,7 +97,8 @@ export function ScreenshotGrid({ screenshots }: { screenshots: ScreenshotItem[] 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
         {screenshots.map((s, idx) => (
           <div key={s.id} style={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
-            <img 
+            <img
+              loading="lazy"
               src={loadedImages[s.id] || s.imageUrl} 
               alt="Screenshot" 
               style={{ width: '100%', height: 'auto', display: 'block', cursor: 'pointer', transition: 'opacity 0.2s' }} 

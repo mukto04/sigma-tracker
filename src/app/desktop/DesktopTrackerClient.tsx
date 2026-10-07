@@ -190,6 +190,7 @@ export default function DesktopTracker() {
   const [availableUpdate, setAvailableUpdate] = useState<any | null>(null);
   const [updateMessage, setUpdateMessage] = useState('');
   const [updating, setUpdating] = useState(false);
+  const lastSummaryRefreshRef = React.useRef(0);
 
   // --- Offline Sync Engine ---
   const [isOffline, setIsOffline] = useState(false);
@@ -553,10 +554,14 @@ export default function DesktopTracker() {
               activeApps: JSON.stringify(nativeApps),
               offlineCreatedAt: new Date().toISOString()
             });
-            // Refresh summary charts
-            fetch('/api/tracker/summary').then(res => res.json()).then((data: any) => {
-              if (data.success) setSummaryData(data.data);
-            });
+            // Local counters update immediately. A full-day summary is much
+            // heavier than an activity write, so refresh it at most once a minute.
+            if (now - lastSummaryRefreshRef.current >= 60_000) {
+              lastSummaryRefreshRef.current = now;
+              fetch('/api/tracker/summary').then(res => res.json()).then((data: any) => {
+                if (data.success) setSummaryData(data.data);
+              }).catch(() => undefined);
+            }
           }
         }
       }, 10000);
@@ -1529,7 +1534,8 @@ export default function DesktopTracker() {
                   return (
                   <div key={s.id} onClick={() => setFullScreenImage(displayImage)} style={{ cursor: 'pointer', position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid #2a2a2a', backgroundColor: '#111', height: '110px' }}>
                     {displayImage ? (
-                      <img 
+                      <img
+                        loading="lazy"
                         src={displayImage} 
                         alt="Screenshot" 
                         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}

@@ -34,7 +34,8 @@ export async function GET(req: Request) {
 
     // Fetch today's activity logs
     const rawActivityLogs = await prisma.activityLog.findMany({
-      where: { userId, createdAt: { gte: targetDate, lte: targetDateEnd } }
+      where: { userId, createdAt: { gte: targetDate, lte: targetDateEnd } },
+      orderBy: { createdAt: 'asc' }
     });
 
     // Filter activity logs so ONLY logs that fall inside valid timeEntries (duration > 0 or ongoing) are kept
@@ -47,6 +48,14 @@ export async function GET(req: Request) {
         return logTime >= (entryStart - 5000) && logTime <= (entryEnd + 5000);
       });
     });
+
+    // Bucket once instead of scanning every log 24 times below. This route is
+    // polled by each running desktop tracker, so avoiding the O(24 * logs)
+    // pass keeps Worker CPU predictable as a company grows.
+    const activityLogsByHour = Array.from({ length: 24 }, () => [] as typeof activityLogs);
+    for (const log of activityLogs) {
+      activityLogsByHour[new Date(log.createdAt).getHours()].push(log);
+    }
 
     // We'll generate an array of 24 hours (00:00 to 23:59)
     const startHour = 0;
@@ -77,10 +86,7 @@ export async function GET(req: Request) {
       let timePercent = Math.min(100, Math.floor((secondsInHour / 3600) * 100));
       hourlyTimeLogged.push(timePercent);
 
-      const logsInHour = activityLogs.filter(log => {
-        const logHour = new Date(log.createdAt).getHours();
-        return logHour === h;
-      });
+      const logsInHour = activityLogsByHour[h];
 
       let avgProductivity = 0;
       const hourAppMap: any = {};

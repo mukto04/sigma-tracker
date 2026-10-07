@@ -120,6 +120,7 @@ export function UnifiedScreenshotStream({ screenshots }: { screenshots: Screensh
             {/* Image Preview */}
             <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%', backgroundColor: '#0f172a', overflow: 'hidden' }}>
               <img
+                loading="lazy"
                 src={loadedImages[item.id] || item.imageUrl}
                 alt="Screenshot"
                 style={{
@@ -130,7 +131,6 @@ export function UnifiedScreenshotStream({ screenshots }: { screenshots: Screensh
                   height: '100%',
                   objectFit: 'cover',
                 }}
-                loading="lazy"
                 onError={(e) => {
                   const img = e.currentTarget;
                   img.style.display = 'none';
