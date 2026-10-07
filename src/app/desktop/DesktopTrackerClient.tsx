@@ -469,6 +469,7 @@ export default function DesktopTracker() {
 
   const lastTickTime = React.useRef<number>(0);
   const trackingDayRef = React.useRef<number>(new Date().getDate());
+  const rolloverInProgressRef = React.useRef(false);
 
   // Timer interval
   useEffect(() => {
@@ -481,19 +482,24 @@ export default function DesktopTracker() {
         const now = Date.now();
         
         // --- Midnight Auto-Rollover Logic ---
-        if (new Date(now).getDate() !== trackingDayRef.current) {
-          console.log("Midnight crossed, auto-restarting session for new day");
-          stopTrackingLogic(false); // completely stop current session
-          setTimeout(() => {
-             // Reset local states for the new day
-             setSecondsElapsed(0);
-             setActivitySeconds(0);
-             setIdleSeconds(0);
-             startTrackingLogic(false); // start fresh
-             refreshData();
-             // clear selected date so it jumps back to Today
-             setSelectedDate(null);
-          }, 1500); // 1.5s delay to ensure backend completed the stop
+        if (new Date(now).getDate() !== trackingDayRef.current && !rolloverInProgressRef.current) {
+          rolloverInProgressRef.current = true;
+          void (async () => {
+            try {
+              // Finish the prior-day entry before a new-day entry is created.
+              await stopTrackingLogic(false);
+              setSecondsElapsed(0);
+              setActivitySeconds(0);
+              setIdleSeconds(0);
+              setLiveAppUsage({});
+              setSelectedDate(null);
+              trackingDayRef.current = new Date().getDate();
+              await startTrackingLogic(false);
+              refreshData();
+            } finally {
+              rolloverInProgressRef.current = false;
+            }
+          })();
           return; // skip this tick
         }
         // ------------------------------------
@@ -1007,13 +1013,19 @@ export default function DesktopTracker() {
                 </div>
               </div>
 
-              <a href="/dashboard" target="_blank" style={{
+              <a href="/dashboard" style={{
                 padding: '10px 14px', color: '#e5e5e5', fontSize: '13px', textDecoration: 'none',
                 borderBottom: '1px solid #262626', transition: 'background-color 0.15s', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: '8px'
               }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#262626'}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              onClick={(event) => {
+                event.preventDefault();
+                const dashboardUrl = new URL('/dashboard', window.location.origin).toString();
+                const openedWindow = window.open(dashboardUrl, '_blank', 'noopener,noreferrer');
+                if (!openedWindow) window.location.assign(dashboardUrl);
+              }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
                 Go to dashboard
