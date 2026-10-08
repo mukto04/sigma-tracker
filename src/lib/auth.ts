@@ -1,7 +1,10 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
-const SESSION_SECRET = process.env.NEXTAUTH_SECRET || 'SigmaSecureTrackerSecret123!_HARDCODED';
+const SESSION_SECRET = process.env.NEXTAUTH_SECRET;
+if (!SESSION_SECRET) {
+  throw new Error('NEXTAUTH_SECRET must be configured.');
+}
 const SECRET_KEY = new TextEncoder().encode(SESSION_SECRET);
 
 export const SESSION_COOKIE = 'sigma-session';
