@@ -88,10 +88,11 @@ export async function GET(req: Request) {
 
     for (let h = startHour; h <= endHour; h++) {
       let secondsInHour = 0;
-      const hourStart = new Date(today);
-        hourStart.setHours(h, 0, 0, 0);
-      const hourEnd = new Date(today);
-        hourEnd.setHours(h, 59, 59, 999);
+      // `targetDate` is the UTC instant of the user's local midnight. Adding
+      // the hour keeps time-entry ranges in that same local-day coordinate
+      // system, regardless of the Worker runtime timezone.
+      const hourStart = new Date(today.getTime() + h * 60 * 60 * 1000);
+      const hourEnd = new Date(hourStart.getTime() + 60 * 60 * 1000 - 1);
       secondsInHour = totalTrackedSeconds(timeEntries, hourStart, hourEnd);
       let timePercent = Math.min(100, Math.floor((secondsInHour / 3600) * 100));
       hourlyTimeLogged.push(timePercent);

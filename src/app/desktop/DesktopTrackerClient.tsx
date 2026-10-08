@@ -441,7 +441,7 @@ export default function DesktopTracker() {
         if (data.timeEntries) setTimesheets(data.timeEntries);
       });
     } else if (activeTab === 'summary') {
-      fetch(`/api/tracker/summary${query}`).then(res => res.json()).then((data: any) => {
+      fetch(`/api/tracker/summary${query}`, { cache: 'no-store' }).then(res => res.json()).then((data: any) => {
         if (data.success) {
           setSummaryData(data.data);
           // Only initialize timers from DB if we haven't started a live session and we are viewing today
@@ -457,7 +457,7 @@ export default function DesktopTracker() {
 
   // Initial load — fetch summary data on mount regardless of active tab
   useEffect(() => {
-    fetch(`/api/tracker/summary${getTrackerQuery()}`).then(res => res.json()).then((data: any) => {
+    fetch(`/api/tracker/summary${getTrackerQuery()}`, { cache: 'no-store' }).then(res => res.json()).then((data: any) => {
       if (data.success) {
         setSummaryData(data.data);
         setSecondsElapsed((prev) => prev === 0 ? data.data.totalSecondsToday || 0 : prev);
@@ -565,7 +565,7 @@ export default function DesktopTracker() {
             // heavier than an activity write, so refresh it at most once a minute.
             if (now - lastSummaryRefreshRef.current >= 60_000) {
               lastSummaryRefreshRef.current = now;
-              fetch(`/api/tracker/summary${getTrackerQuery()}`).then(res => res.json()).then((data: any) => {
+              fetch(`/api/tracker/summary${getTrackerQuery()}`, { cache: 'no-store' }).then(res => res.json()).then((data: any) => {
                 if (data.success) setSummaryData(data.data);
               }).catch(() => undefined);
             }
@@ -689,7 +689,7 @@ export default function DesktopTracker() {
     fetch(`/api/tracker/timesheets${query}`).then(res => res.json()).then((data: any) => {
       if (data.timeEntries) setTimesheets(data.timeEntries);
     });
-    fetch(`/api/tracker/summary${query}`).then(res => res.json()).then((data: any) => {
+    fetch(`/api/tracker/summary${query}`, { cache: 'no-store' }).then(res => res.json()).then((data: any) => {
       if (data.success) {
         setSummaryData(data.data);
         if (trackingStateRef.current === 'STOPPED' && (!selectedDate || selectedDate === getLocalDateStr(new Date()))) {
@@ -1269,23 +1269,11 @@ export default function DesktopTracker() {
               {/* RIGHT COLUMN */}
               <div style={{ width: '65%', paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', position: 'relative' }}>
                 {(() => {
-                  // --- UTC-to-Local timezone shift ---
-                  // Server returns hourly data indexed by UTC hour. We must shift to local hours.
-                  const tzOffsetHours = -Math.floor(new Date().getTimezoneOffset() / 60); // e.g. +6 for Bangladesh
-                  
-                  const shiftArray = (arr: any[] | undefined) => {
-                    if (!arr || arr.length === 0) return arr;
-                    const shifted: any[] = new Array(24).fill(arr[0] != null && typeof arr[0] === 'object' ? undefined : 0);
-                    for (let utcH = 0; utcH < 24; utcH++) {
-                      const localH = (utcH + tzOffsetHours + 24) % 24;
-                      shifted[localH] = arr[utcH] ?? (typeof arr[0] === 'object' ? [] : 0);
-                    }
-                    return shifted;
-                  };
-                  
-                  const localTimeLogged = shiftArray(summaryData?.hourlyTimeLogged);
-                  const localHourlyDetails = shiftArray(summaryData?.hourlyDetails);
-                  const localHourlyApps = shiftArray(summaryData?.hourlyApps);
+                  // The API already returns arrays indexed by the user's local
+                  // hour. Shifting them again moves every bar to the wrong slot.
+                  const localTimeLogged = summaryData?.hourlyTimeLogged;
+                  const localHourlyDetails = summaryData?.hourlyDetails;
+                  const localHourlyApps = summaryData?.hourlyApps;
                   
                   // Find which LOCAL hours have activity
                   const activeHours = (localTimeLogged || []).map((v: number, i: number) => v > 0 ? i : -1).filter((i: number) => i >= 0);
