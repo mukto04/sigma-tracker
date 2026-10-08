@@ -1,0 +1,9 @@
+import styles from './company-dashboard-hero.module.css';
+
+export function CompanyDashboardHero() {
+  return <div className={styles.frame} aria-label="Company management console preview">
+    <div className={styles.top}><b>SigmaTracker</b><span>Management Console</span><i>Live</i></div>
+    <div className={styles.body}><aside><b>ST</b><span className={styles.selected}>Dashboard</span><span>Timesheets</span><span>Screenshots</span><span>App Usage</span><span>Reports</span><span>Employees</span></aside><main><div className={styles.heading}><div><small>COMPANY OVERVIEW</small><h3>Good morning, team</h3><p>Thursday, October 08</p></div><button>Export report</button></div><div className={styles.metrics}><Metric label="ACTIVE NOW" value="18" note="of 22 employees"/><Metric label="TIME TRACKED" value="126h 42m" note="today"/><Metric label="AVG. ACTIVITY" value="84%" note="Healthy focus"/><Metric label="NEEDS REVIEW" value="3" note="items"/></div><div className={styles.middle}><section className={styles.activity}><div><b>Team activity</b><span>Today</span></div><div className={styles.bars}>{[42,61,55,77,68,90,74,82,64,72].map((n,i)=><i key={i} style={{height:`${n}%`}}/>)}</div><p><span>09:00</span><span>12:00</span><span>15:00</span><span>18:00</span></p></section><section className={styles.shots}><div><b>Recent screenshots</b><span>View all</span></div><div className={styles.thumbGrid}><i/><i/><i/><i/></div></section></div><section className={styles.table}><div><b>Employee activity</b><span>View team</span></div><p><em>AM</em>Alex Morgan <small>6h 18m</small><strong>92%</strong></p><p><em>RW</em>Riley Wong <small>5h 42m</small><strong>86%</strong></p><p><em>JS</em>Jordan Smith <small>4h 56m</small><strong>78%</strong></p></section></main></div>
+  </div>;
+}
+function Metric({label,value,note}:{label:string;value:string;note:string}){return <article><small>{label}</small><strong>{value}</strong><span>{note}</span></article>}
