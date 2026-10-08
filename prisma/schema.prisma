@@ -43,6 +43,8 @@ model User {
   timeEntries TimeEntry[]
   screenshots Screenshot[]
   activities  ActivityLog[]
+
+  @@index([companyId, role])
 }
 
 model Project {
@@ -54,6 +56,8 @@ model Project {
 
   company     Company     @relation(fields: [companyId], references: [id])
   timeEntries TimeEntry[]
+
+  @@index([companyId])
 }
 
 model TimeEntry {
@@ -67,6 +71,9 @@ model TimeEntry {
 
   user    User     @relation(fields: [userId], references: [id])
   project Project? @relation(fields: [projectId], references: [id])
+
+  @@index([userId, startTime])
+  @@index([projectId])
 }
 
 model Screenshot {
@@ -76,6 +83,8 @@ model Screenshot {
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
 }
 
 model ActivityLog {
@@ -86,6 +95,8 @@ model ActivityLog {
   createdAt        DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
 }
 
 model Setting {
