@@ -1,0 +1,50 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgba(2, 6, 23, 0.68);
+  backdrop-filter: blur(6px);
+}
+
+.dialog {
+  width: min(100%, 440px);
+  border: 1px solid #334155;
+  border-radius: 10px;
+  background: #111827;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.38);
+  padding: 1.5rem;
+  color: #f8fafc;
+  animation: enter 160ms ease-out;
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-bottom: 1rem;
+  border-radius: 50%;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.primary { background: #1d4ed8; }
+.success { background: #15803d; }
+.danger { background: #b91c1c; }
+
+.title { margin: 0; font-size: 1.125rem; font-weight: 700; }
+.description { margin: 0.55rem 0 0; color: #cbd5e1; font-size: 0.925rem; line-height: 1.5; }
+.actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; }
+.cancel, .confirm { min-height: 2.5rem; border-radius: 6px; padding: 0.5rem 1rem; font-weight: 700; cursor: pointer; }
+.cancel { border: 1px solid #475569; background: transparent; color: #e2e8f0; }
+.confirm { border: 1px solid transparent; color: white; }
+.cancel:hover:not(:disabled) { background: #1e293b; }
+.confirm:hover:not(:disabled) { filter: brightness(1.1); }
+.cancel:disabled, .confirm:disabled { cursor: not-allowed; opacity: 0.6; }
+
+@keyframes enter { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+@media (max-width: 480px) { .actions { flex-direction: column-reverse; } .cancel, .confirm { width: 100%; } }

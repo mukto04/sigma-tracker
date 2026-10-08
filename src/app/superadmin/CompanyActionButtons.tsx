@@ -3,6 +3,7 @@
 import React, { useState, useTransition } from 'react';
 import { softDeleteCompany, restoreCompany, editCompany, recordManualPayment } from './actions';
 import { Button } from '@/components/ui/Button';
+import { ConfirmationDialog } from '@/components/ui/ConfirmationDialog';
 
 type CompanyActionModel = {
   id: string;
@@ -15,6 +16,7 @@ type CompanyActionModel = {
 export default function CompanyActionButtons({ company }: { company: CompanyActionModel }) {
   const [isPending, startTransition] = useTransition();
   const [isEditModalOpen, setEditModalOpen] = useState(false);
+  const [confirmation, setConfirmation] = useState<'delete' | 'payment' | null>(null);
   
   // Calculate remaining days for the edit modal
   let initialRemainingDays = 30;
@@ -34,7 +36,11 @@ export default function CompanyActionButtons({ company }: { company: CompanyActi
   const hasPendingPayment = company.subscriptionStatus === 'Payment Pending';
 
   const handleDelete = () => {
-    if (!confirm(`Are you sure you want to move ${company.name} to the Trash Bin?`)) return;
+    setConfirmation('delete');
+  };
+
+  const confirmDelete = () => {
+    setConfirmation(null);
     startTransition(async () => {
       await softDeleteCompany(company.id);
     });
@@ -47,7 +53,11 @@ export default function CompanyActionButtons({ company }: { company: CompanyActi
   };
 
   const handleManualPayment = () => {
-    if (!confirm(`Record manual payment for ${company.name}? This will activate the subscription.`)) return;
+    setConfirmation('payment');
+  };
+
+  const confirmManualPayment = () => {
+    setConfirmation(null);
     startTransition(async () => {
       const result = await recordManualPayment(company.id);
       if (!result.success) alert(result.error || 'Unable to record manual payment.');
@@ -168,6 +178,27 @@ export default function CompanyActionButtons({ company }: { company: CompanyActi
           </div>
         </div>
       )}
+
+      <ConfirmationDialog
+        open={confirmation === 'delete'}
+        title="Move company to Trash Bin?"
+        description={`${company.name} will be removed from the active company list. You can restore it later from the Trash Bin.`}
+        confirmLabel="Move to Trash Bin"
+        tone="danger"
+        busy={isPending}
+        onCancel={() => setConfirmation(null)}
+        onConfirm={confirmDelete}
+      />
+      <ConfirmationDialog
+        open={confirmation === 'payment'}
+        title="Record manual payment?"
+        description={`This confirms payment for ${company.name}, activates its subscription, and records the payment in the billing history.`}
+        confirmLabel="Confirm Payment"
+        tone="success"
+        busy={isPending}
+        onCancel={() => setConfirmation(null)}
+        onConfirm={confirmManualPayment}
+      />
     </>
   );
 }
