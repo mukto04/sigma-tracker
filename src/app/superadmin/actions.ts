@@ -41,7 +41,9 @@ export async function createCompanyManually(
   adminName: string, 
   adminPassword: string,
   employeeCount: number = 1,
-  validityDays: number = 30
+  validityDays: number = 30,
+  plan: string = 'PRO',
+  monthlySeatPrice: number = 1
 ) {
   try {
     const unauthorized = await ensureSuperadmin();
@@ -53,6 +55,8 @@ export async function createCompanyManually(
     const cleanPassword = String(adminPassword || '');
     const seats = Math.max(1, Math.min(500, Math.round(Number(employeeCount) || 1)));
     const days = Math.max(1, Math.min(3650, Math.round(Number(validityDays) || 30)));
+    const safePlan = ['PRO', 'ENTERPRISE'].includes(String(plan).toUpperCase()) ? String(plan).toUpperCase() : 'PRO';
+    const unitAmount = Math.max(1, Math.min(1000000, Math.round(Number(monthlySeatPrice) * 100)));
 
     if (!cleanCompanyName || !cleanAdminEmail || !cleanAdminName || cleanPassword.length < 8) {
       return { success: false, error: 'Company, admin and 8+ character password are required.' };
@@ -68,13 +72,37 @@ export async function createCompanyManually(
     const endDate = new Date();
     endDate.setDate(endDate.getDate() + days);
 
+    const subscriptionId = crypto.randomUUID();
     const company = await prisma.company.create({
       data: {
         name: cleanCompanyName,
+        plan: safePlan,
         paidSeats: seats,
-        purchaseDate: purchaseDate,
+        purchaseDate: null,
         endDate: endDate,
-        subscriptionStatus: 'Active',
+        subscriptionStatus: 'Payment Pending',
+        subscriptions: {
+          create: {
+            id: subscriptionId,
+            plan: safePlan,
+            seatCount: seats,
+            unitAmount,
+            currency: 'usd',
+            interval: 'month',
+            status: 'Payment Pending',
+          },
+        },
+        payments: {
+          create: {
+            id: crypto.randomUUID(),
+            subscriptionId,
+            amount: seats * unitAmount,
+            currency: 'usd',
+            status: 'Pending',
+            description: `${safePlan} subscription, ${seats} seat${seats === 1 ? '' : 's'} (${days} day access)` ,
+            dueAt: purchaseDate,
+          },
+        },
         users: {
           create: {
             email: cleanAdminEmail,

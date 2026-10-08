@@ -13,8 +13,8 @@ export async function getSettings() {
   const settingsArray = await prisma.setting.findMany();
   const settings: Record<string, string | boolean> = {};
   for (const s of settingsArray) {
-    if (s.key === 'smtp2go_api_key') {
-      settings.smtp2go_api_key_configured = Boolean(s.value);
+    if (['smtp2go_api_key', 'stripe_secret_key', 'stripe_webhook_secret'].includes(s.key)) {
+      settings[`${s.key}_configured`] = Boolean(s.value);
       continue;
     }
     settings[s.key] = s.value;
@@ -42,7 +42,9 @@ export async function updateSetting(key: string, value: string) {
     ];
     if (!allowedKeys.includes(key)) return { success: false, error: 'Invalid setting' };
 
-    const storedValue = key === 'smtp2go_api_key' ? await encryptSetting(value.trim()) : value;
+    const sensitiveKeys = ['smtp2go_api_key', 'stripe_secret_key', 'stripe_webhook_secret'];
+    if (sensitiveKeys.includes(key) && !value.trim()) return { success: true };
+    const storedValue = sensitiveKeys.includes(key) ? await encryptSetting(value.trim()) : value;
     await prisma.setting.upsert({
       where: { key },
       update: { value: storedValue },

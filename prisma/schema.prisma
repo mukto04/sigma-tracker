@@ -26,6 +26,8 @@ model Company {
 
   users    User[]
   projects Project[]
+  subscriptions Subscription[]
+  payments      Payment[]
 }
 
 model User {
@@ -115,4 +117,49 @@ model PasswordResetToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model Subscription {
+  id                       String   @id
+  companyId                String
+  plan                     String
+  seatCount                Int
+  unitAmount               Int
+  currency                 String   @default("usd")
+  interval                 String   @default("month")
+  status                   String
+  stripeCustomerId         String?  @unique
+  stripeSubscriptionId     String?  @unique
+  paymentMethodLabel       String?
+  startedAt                DateTime?
+  currentPeriodEnd         DateTime?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  payments Payment[]
+
+  @@index([companyId, status])
+}
+
+model Payment {
+  id                      String   @id
+  companyId               String
+  subscriptionId          String
+  amount                  Int
+  currency                String   @default("usd")
+  status                  String
+  description             String
+  dueAt                   DateTime?
+  paidAt                  DateTime?
+  stripeCheckoutSessionId String?  @unique
+  stripeInvoiceId         String?  @unique
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  company      Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, status, createdAt])
+  @@index([subscriptionId, createdAt])
 }

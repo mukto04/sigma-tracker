@@ -194,7 +194,7 @@ export default async function SuperadminPage({ searchParams }: { searchParams: P
   });
 
   // Calculate stats
-  const activeCount = allCompanies.filter(c => c.subscriptionStatus === 'Active').length;
+  const activeCount = allCompanies.filter(c => c.subscriptionStatus === 'Active' || c.subscriptionStatus === 'Payment Pending').length;
   const terminatedCount = allCompanies.filter(c => c.subscriptionStatus === 'Terminated' || c.subscriptionStatus === 'Expired').length;
   const deletedCount = allCompanies.filter(c => c.subscriptionStatus === 'Deleted').length;
   const total = activeCount + terminatedCount;
@@ -273,7 +273,7 @@ export default async function SuperadminPage({ searchParams }: { searchParams: P
                 if (remainingDays < 0) remainingDays = 0;
               }
 
-              let statusLabel = '✓ Active';
+              let statusLabel = company.subscriptionStatus;
               let statusStyle = styles.pillActive;
               if (company.subscriptionStatus === 'Deleted') {
                 statusLabel = '🗑️ Deleted';
@@ -284,6 +284,9 @@ export default async function SuperadminPage({ searchParams }: { searchParams: P
               } else if (company.subscriptionStatus === 'Terminated') {
                 statusLabel = 'ⓧ Terminated';
                 statusStyle = styles.pillExpired;
+              } else if (company.subscriptionStatus === 'Payment Pending') {
+                statusLabel = 'Payment Pending';
+                statusStyle = { ...styles.pillExpired, backgroundColor: 'rgba(245, 158, 11, 0.12)', color: '#fbbf24' };
               }
 
               return (
@@ -309,7 +312,7 @@ export default async function SuperadminPage({ searchParams }: { searchParams: P
                   </td>
 
                   <td style={styles.td}>
-                    <span style={styles.pillEnterprise}>Enterprise</span>
+                    <span style={styles.pillEnterprise}>{company.plan}</span>
                     <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{company.paidSeats} Seats - Monthly</div>
                   </td>
 

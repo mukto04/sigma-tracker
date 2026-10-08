@@ -115,22 +115,35 @@ export function SecurityForm() {
 export function StripeForm({ initialSettings }: { initialSettings: any }) {
   const [isPending, startTransition] = useTransition();
   const [pub, setPub] = useState(initialSettings.stripe_public_key || '');
-  const [sec, setSec] = useState(initialSettings.stripe_secret_key || '');
+  const [sec, setSec] = useState('');
+  const [webhookSecret, setWebhookSecret] = useState('');
+  const secretConfigured = Boolean(initialSettings.stripe_secret_key_configured);
+  const webhookConfigured = Boolean(initialSettings.stripe_webhook_secret_configured);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     startTransition(async () => {
       await updateSetting('stripe_public_key', pub);
-      await updateSetting('stripe_secret_key', sec);
-      alert('Payment gateway saved!');
+      const results = await Promise.all([
+        updateSetting('stripe_public_key', pub),
+        sec.trim() ? updateSetting('stripe_secret_key', sec) : Promise.resolve({ success: true }),
+        webhookSecret.trim() ? updateSetting('stripe_webhook_secret', webhookSecret) : Promise.resolve({ success: true }),
+      ]);
+      if (results.every((result) => result.success)) {
+        setSec('');
+        setWebhookSecret('');
+        alert('Payment gateway saved!');
+      } else {
+        alert('Unable to save payment gateway settings.');
+      }
     });
   };
 
   return (
     <form onSubmit={handleSubmit} style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <DarkInput label="Publishable Key" value={pub} onChange={(e:any) => setPub(e.target.value)} />
-      <DarkInput label="Secret Key" type="password" value={sec} onChange={(e:any) => setSec(e.target.value)} />
-      <DarkInput label="Webhook Secret (optional)" type="password" placeholder="whsec_..." />
+      <DarkInput label={secretConfigured ? "Secret Key (configured)" : "Secret Key"} type="password" value={sec} onChange={(e:any) => setSec(e.target.value)} placeholder={secretConfigured ? "Leave blank to keep current key" : "sk_live_..."} />
+      <DarkInput label={webhookConfigured ? "Webhook Secret (configured)" : "Webhook Secret"} type="password" value={webhookSecret} onChange={(e:any) => setWebhookSecret(e.target.value)} placeholder={webhookConfigured ? "Leave blank to keep current secret" : "whsec_..."} />
       <div style={{ display: 'flex', gap: '1rem' }}>
         <SaveButton label="💾 Save Stripe Configuration" variant="purple" isPending={isPending} />
       </div>

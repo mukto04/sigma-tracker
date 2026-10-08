@@ -26,8 +26,8 @@ export default function CompanyActionButtons({ company }: { company: CompanyActi
   
   const [editForm, setEditForm] = useState({
     name: company.name,
-    employeeCount: company.paidSeats,
-    validityDays: initialRemainingDays
+    employeeCount: String(company.paidSeats),
+    validityDays: String(initialRemainingDays)
   });
 
   const isDeleted = company.subscriptionStatus === 'Deleted';
@@ -48,8 +48,14 @@ export default function CompanyActionButtons({ company }: { company: CompanyActi
 
   const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const employeeCount = Number(editForm.employeeCount);
+    const validityDays = Number(editForm.validityDays);
+    if (!Number.isInteger(employeeCount) || employeeCount < 1 || !Number.isInteger(validityDays) || validityDays < 0) {
+      alert('Enter a valid seat count and validity period.');
+      return;
+    }
     startTransition(async () => {
-      await editCompany(company.id, editForm.name, editForm.employeeCount, editForm.validityDays);
+      await editCompany(company.id, editForm.name, employeeCount, validityDays);
       setEditModalOpen(false);
     });
   };
@@ -118,7 +124,7 @@ export default function CompanyActionButtons({ company }: { company: CompanyActi
                   type="number" 
                   min="1"
                   value={editForm.employeeCount} 
-                  onChange={e => setEditForm({...editForm, employeeCount: parseInt(e.target.value) || 1})}
+                  onChange={e => setEditForm({...editForm, employeeCount: e.target.value})}
                   required
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #334155', backgroundColor: '#1e293b', color: '#f8fafc', outline: 'none' }}
                 />
@@ -130,7 +136,7 @@ export default function CompanyActionButtons({ company }: { company: CompanyActi
                   type="number" 
                   min="0"
                   value={editForm.validityDays} 
-                  onChange={e => setEditForm({...editForm, validityDays: parseInt(e.target.value) || 0})}
+                  onChange={e => setEditForm({...editForm, validityDays: e.target.value})}
                   required
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #334155', backgroundColor: '#1e293b', color: '#f8fafc', outline: 'none' }}
                 />
