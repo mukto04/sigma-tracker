@@ -4,8 +4,9 @@ import styles from './page.module.css';
 import { PricingForm } from './PricingForm';
 import Link from 'next/link';
 import Image from 'next/image';
+import LandingPage from './LandingPage';
 
-export default function Home() {
+function LegacyHome() {
   return (
     <main className={styles.main}>
       {/* Navigation Header */}
@@ -175,4 +176,8 @@ export default function Home() {
       </footer>
     </main>
   );
+}
+
+export default function Home() {
+  return <LandingPage />;
 }
