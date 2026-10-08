@@ -55,11 +55,11 @@ export default async function CompanyAdminDashboard() {
           where: { role: 'EMPLOYEE' },
           select: { id: true, name: true, email: true },
           orderBy: { name: 'asc' },
-          take: 200,
+          take: 100,
         },
         projects: {
           select: { id: true },
-          take: 200,
+          take: 100,
         },
       },
     });
@@ -102,7 +102,7 @@ export default async function CompanyAdminDashboard() {
           },
           select: { activeApps: true, userId: true, createdAt: true, productivityScore: true },
           orderBy: { createdAt: 'desc' },
-          take: 100
+          take: 60
         }).catch(() => []),
         prisma.screenshot.findMany({
           where: {

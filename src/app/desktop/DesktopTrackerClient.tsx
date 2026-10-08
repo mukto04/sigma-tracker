@@ -571,7 +571,7 @@ export default function DesktopTracker() {
             }
           }
         }
-      }, 10000);
+      }, 30000);
     } else {
 
     }

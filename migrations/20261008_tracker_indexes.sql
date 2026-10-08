@@ -6,3 +6,5 @@ CREATE INDEX IF NOT EXISTS "TimeEntry_userId_startTime_idx" ON "TimeEntry"("user
 CREATE INDEX IF NOT EXISTS "TimeEntry_projectId_idx" ON "TimeEntry"("projectId");
 CREATE INDEX IF NOT EXISTS "Screenshot_userId_createdAt_idx" ON "Screenshot"("userId", "createdAt");
 CREATE INDEX IF NOT EXISTS "ActivityLog_userId_createdAt_idx" ON "ActivityLog"("userId", "createdAt");
+CREATE INDEX IF NOT EXISTS "Screenshot_createdAt_userId_idx" ON "Screenshot"("createdAt", "userId");
+CREATE INDEX IF NOT EXISTS "ActivityLog_createdAt_userId_idx" ON "ActivityLog"("createdAt", "userId");

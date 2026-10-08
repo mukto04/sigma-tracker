@@ -88,6 +88,7 @@ model Screenshot {
   user User @relation(fields: [userId], references: [id])
 
   @@index([userId, createdAt])
+  @@index([createdAt, userId])
 }
 
 model ActivityLog {
@@ -100,6 +101,7 @@ model ActivityLog {
   user User @relation(fields: [userId], references: [id])
 
   @@index([userId, createdAt])
+  @@index([createdAt, userId])
 }
 
 model Setting {

@@ -44,8 +44,12 @@ export async function GET(req: Request) {
     // Fetch today's activity logs
     const rawActivityLogs = await prisma.activityLog.findMany({
       where: { userId, createdAt: { gte: targetDate, lte: targetDateEnd } },
-      orderBy: { createdAt: 'asc' }
+      // A tracker sends a sample every few seconds. Keep summary work bounded
+      // even for unusually long days or clients that retry offline payloads.
+      orderBy: { createdAt: 'desc' },
+      take: 1500,
     });
+    rawActivityLogs.reverse();
 
     // Filter activity logs so ONLY logs that fall inside valid timeEntries (duration > 0 or ongoing) are kept
     const activityLogs = rawActivityLogs.filter(log => {
@@ -181,7 +185,9 @@ export async function GET(req: Request) {
     weekStart.setDate(weekStart.getDate() - 7);
     
     const weekEntries = await prisma.timeEntry.findMany({
-      where: { userId, startTime: { gte: weekStart } }
+      where: { userId, startTime: { gte: weekStart } },
+      orderBy: { startTime: 'desc' },
+      take: 500,
     });
 
     const getLocalISODate = (d: Date) => {
