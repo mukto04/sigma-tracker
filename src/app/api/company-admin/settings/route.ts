@@ -17,6 +17,7 @@ export async function GET() {
       plan: true,
       paidSeats: true,
       subscriptionStatus: true,
+      purchaseDate: true,
       subscriptions: {
         orderBy: { createdAt: 'desc' },
         take: 1,
@@ -56,6 +57,7 @@ export async function GET() {
         plan: 'FREE',
         paidSeats: 0,
         subscriptionStatus: 'Inactive',
+        purchaseDate: null,
         subscriptions: [],
         projects: [],
       },

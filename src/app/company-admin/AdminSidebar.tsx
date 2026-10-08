@@ -15,6 +15,7 @@ export function AdminSidebar({ companyName, adminName, adminEmail, logoUrl }: { 
     { href: '/company-admin/apps', icon: '💻', label: 'App Usage' },
     { href: '/company-admin/reports', icon: '📈', label: 'Reports' },
     { href: '/company-admin/employees', icon: '👥', label: 'Employees' },
+    { href: '/company-admin/subscriptions', icon: '💳', label: 'Subscriptions' },
     { href: '/company-admin/settings', icon: '⚙️', label: 'Settings' },
   ];
 
