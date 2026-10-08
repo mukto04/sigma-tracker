@@ -1,7 +1,6 @@
 import React from 'react';
 import NewPurchasesTable from '../NewPurchasesTable';
 
-export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 const styles = {

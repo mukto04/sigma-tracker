@@ -3,7 +3,6 @@ import { getSession } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getStripeSecretKey, isStripeConfigured } from '@/lib/stripe-settings';
 
-export const runtime = 'edge';
 
 export async function POST(req: Request) {
   const session = await getSession();

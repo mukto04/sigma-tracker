@@ -3,7 +3,6 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { createSessionToken, SESSION_COOKIE } from '@/lib/auth';
 
-export const runtime = 'edge';
 
 export async function POST(req: Request) {
   try {

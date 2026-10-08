@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRequestContext } from '@cloudflare/next-on-pages';
 import { prisma } from '@/lib/prisma';
 import { sendPasswordResetLinkEmail } from '@/lib/email';
-
-export const runtime = 'edge';
 
 const GENERIC_RESPONSE = { ok: true, message: 'If an account exists for that email, a reset link has been sent.' };
 
@@ -25,18 +22,22 @@ export async function POST(request: NextRequest) {
     });
     if (!user) return NextResponse.json(GENERIC_RESPONSE);
 
-    const db = (getRequestContext().env as { DB?: D1Database }).DB;
-    if (!db) throw new Error('Cloudflare DB binding not found');
-
     const token = crypto.randomUUID().replaceAll('-', '') + crypto.randomUUID().replaceAll('-', '');
     const tokenHash = await hashToken(token);
     const expiresAt = Date.now() + 30 * 60 * 1000;
 
-    await db.batch([
-      db.prepare('DELETE FROM "PasswordResetToken" WHERE "userId" = ?').bind(user.id),
-      db.prepare('INSERT INTO "PasswordResetToken" ("id", "userId", "tokenHash", "expiresAt") VALUES (?, ?, ?, ?)')
-        .bind(crypto.randomUUID(), user.id, tokenHash, expiresAt),
-    ]);
+    await prisma.passwordResetToken.deleteMany({
+      where: { userId: user.id },
+    });
+
+    await prisma.passwordResetToken.create({
+      data: {
+        id: crypto.randomUUID(),
+        userId: user.id,
+        tokenHash,
+        expiresAt: BigInt(expiresAt),
+      },
+    });
 
     const resetUrl = new URL('/reset-password', request.nextUrl.origin);
     resetUrl.searchParams.set('token', token);

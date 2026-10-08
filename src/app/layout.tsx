@@ -3,7 +3,6 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { BrowserAlertBridge } from '@/components/ui/BrowserAlertBridge';
 
-export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 const inter = Inter({ subsets: ["latin"] });

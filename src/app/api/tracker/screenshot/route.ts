@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getRequestContext } from '@cloudflare/next-on-pages';
-import { decodeDataImage, MAX_SCREENSHOT_REQUEST_BYTES, parseOfflineDate, pruneOldScreenshots, requireTrackerUser, type TrackerEnv } from '@/lib/tracker-api';
-
-export const runtime = 'edge';
+import { decodeDataImage, MAX_SCREENSHOT_REQUEST_BYTES, parseOfflineDate, pruneOldScreenshots, requireTrackerUser } from '@/lib/tracker-api';
+import { saveScreenshotFile } from '@/lib/storage';
 
 export async function POST(req: Request) {
   try {
@@ -27,18 +25,13 @@ export async function POST(req: Request) {
     if ('error' in auth) return auth.error;
 
     let finalImageUrl = imageUrl;
-    const env = getRequestContext().env as TrackerEnv;
 
     if (imageUrl.startsWith('data:image')) {
       const createdAt = parseOfflineDate(body.offlineCreatedAt);
       const { bytes, extension, contentType } = decodeDataImage(imageUrl);
       const filename = `screenshots/${userId}/${createdAt.getTime()}-${crypto.randomUUID()}.${extension}`;
 
-      if (!env.R2) throw new Error("R2 binding not found");
-
-      await env.R2.put(filename, bytes.buffer, {
-        httpMetadata: { contentType },
-      });
+      await saveScreenshotFile(filename, bytes, contentType);
 
       // Use our internal proxy endpoint so we don't need the user to setup a Public R2 Bucket domain
       finalImageUrl = `/api/tracker/screenshots/image?file=${filename}`;
@@ -52,7 +45,7 @@ export async function POST(req: Request) {
       },
     });
 
-    await pruneOldScreenshots(env, userId);
+    await pruneOldScreenshots(undefined, userId);
 
     return NextResponse.json({ success: true, screenshot });
   } catch (error) {

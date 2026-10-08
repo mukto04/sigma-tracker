@@ -111,7 +111,7 @@ export function getR2KeyFromImageUrl(imageUrl: string) {
   return idx >= 0 ? imageUrl.slice(idx) : null;
 }
 
-export async function pruneOldScreenshots(env: TrackerEnv, userId: string) {
+export async function pruneOldScreenshots(env: TrackerEnv | undefined, userId: string) {
   const now = Date.now();
   const lastPrunedAt = screenshotPruneSchedule.get(userId) ?? 0;
   if (now - lastPrunedAt < SCREENSHOT_PRUNE_INTERVAL_MS) return;

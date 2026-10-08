@@ -4,7 +4,6 @@ import bcrypt from 'bcryptjs';
 import { sendWelcomeEmail } from '@/lib/email';
 import { getStripeWebhookSecret } from '@/lib/stripe-settings';
 
-export const runtime = 'edge';
 
 type StripeEvent = {
   type?: string;

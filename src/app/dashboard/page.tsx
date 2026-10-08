@@ -6,7 +6,6 @@ import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import { activityMetrics, totalTrackedSeconds } from '@/lib/tracker-metrics';
 
-export const runtime = 'edge';
 
 export default async function DashboardPage() {
   const session = await getSession();

@@ -4,7 +4,6 @@ import { prisma } from '@/lib/prisma';
 import { ImageUploadForm, ChangePasswordForm } from '@/components/SettingsForms';
 import { redirect } from 'next/navigation';
 
-export const runtime = 'edge';
 
 export default async function SettingsPage() {
   const session = await getSession();

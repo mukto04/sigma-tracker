@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { ExportCsvButton } from './ExportCsvButton';
 import { requireAdminCompany } from '@/lib/company-admin';
 
-export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 function formatDuration(seconds: number) {
@@ -64,9 +63,10 @@ export default async function CompanyAdminTimesheetsPage({
   });
 
   // Fetch all time entries in this week
-  const timeEntries = await prisma.timeEntry.findMany({
+  const employeeIds = employees.map((employee) => employee.id);
+  const timeEntries = employeeIds.length > 0 ? await prisma.timeEntry.findMany({
     where: {
-      userId: { in: employees.map((employee) => employee.id) },
+      userId: { in: employeeIds },
       startTime: { gte: monday, lte: sunday },
     },
     select: {
@@ -80,7 +80,7 @@ export default async function CompanyAdminTimesheetsPage({
     },
     orderBy: { startTime: 'asc' },
     take: 700,
-  });
+  }) : [];
 
   // Map employee weekly breakdown
   let totalCompanyWeekSeconds = 0;

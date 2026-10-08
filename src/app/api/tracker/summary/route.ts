@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
 import { activityMetrics, aggregateAppUsage, totalTrackedSeconds } from '@/lib/tracker-metrics';
 
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   try {

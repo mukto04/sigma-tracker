@@ -4,7 +4,6 @@ import { prisma } from '@/lib/prisma';
 import { ScreenshotGrid } from '@/components/ScreenshotGrid';
 import { clampDateRange, requireAdminCompany } from '@/lib/company-admin';
 
-export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 function getLocalDateStr(date: Date = new Date()) {

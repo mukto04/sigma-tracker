@@ -2,7 +2,6 @@ import React from 'react';
 import styles from './layout.module.css';
 import { requireEmployee } from '@/lib/employee';
 
-export const runtime = 'edge';
 
 import { DashboardNav } from './DashboardNav';
 

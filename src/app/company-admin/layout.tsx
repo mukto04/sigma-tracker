@@ -3,7 +3,6 @@ import { prisma } from '@/lib/prisma';
 import { AdminSidebar } from './AdminSidebar';
 import { requireAdminCompany } from '@/lib/company-admin';
 
-export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 export default async function CompanyAdminLayout({

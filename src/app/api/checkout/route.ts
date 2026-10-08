@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getStripeSecretKey, isStripeConfigured } from '@/lib/stripe-settings';
 
-export const runtime = 'edge';
 
 export async function POST(req: Request) {
   try {

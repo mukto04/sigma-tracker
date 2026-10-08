@@ -3,7 +3,6 @@ import { prisma } from '@/lib/prisma';
 import { createSessionToken, verifySessionToken, SESSION_COOKIE } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 
-export const runtime = 'edge';
 
 // POST /api/auth/login - Login
 export async function POST(req: NextRequest) {

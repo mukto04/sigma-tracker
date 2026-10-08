@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import { clampDateRange, requireAdminCompany } from '@/lib/company-admin';
 
-export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 function formatDuration(seconds: number) {

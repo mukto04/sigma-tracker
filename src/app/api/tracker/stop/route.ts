@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { parseOfflineDate, requireTrackerUser } from '@/lib/tracker-api';
 
-export const runtime = 'edge';
 
 export async function POST(req: Request) {
   try {

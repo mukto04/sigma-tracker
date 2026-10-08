@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { requireAdminCompany } from '@/lib/company-admin';
 import { activityMetrics, aggregateAppUsage, totalTrackedSeconds } from '@/lib/tracker-metrics';
 
-export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 function formatDuration(seconds: number) {

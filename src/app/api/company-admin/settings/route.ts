@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { requireAdminCompany } from '@/lib/company-admin';
 import { prisma } from '@/lib/prisma';
 
-export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {

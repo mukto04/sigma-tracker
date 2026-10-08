@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { UnifiedScreenshotStream } from './UnifiedScreenshotStream';
 import { requireAdminCompany } from '@/lib/company-admin';
 
-export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 export default async function CompanyAdminScreenshotsPage({

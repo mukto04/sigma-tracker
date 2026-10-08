@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
-import { getRequestContext } from '@cloudflare/next-on-pages';
 import { getSession } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import type { TrackerEnv } from '@/lib/tracker-api';
+import { getScreenshotResponse } from '@/lib/storage';
 
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   try {
@@ -45,29 +44,9 @@ export async function GET(req: Request) {
       }
     }
 
-    const env = getRequestContext().env as TrackerEnv;
-    if (!env.R2) {
-      return new NextResponse('R2 binding not found', { status: 500 });
-    }
-
-    const object = await env.R2.get(filename);
-
-    if (object === null) {
-      return new NextResponse('Image not found', { status: 404 });
-    }
-
-    const headers = new Headers();
-    object.writeHttpMetadata(headers);
-    if (!headers.has('Content-Type')) {
-      headers.set('Content-Type', 'image/jpeg');
-    }
-    headers.set('etag', object.httpEtag);
-    headers.set('Cache-Control', 'private, max-age=3600');
-    headers.set('X-Content-Type-Options', 'nosniff');
-
-    return new Response(object.body, { headers });
+    return await getScreenshotResponse(filename);
   } catch (error) {
-    console.error('Error fetching image from R2:', error);
+    console.error('Error fetching image:', error);
     return new NextResponse('Internal server error', { status: 500 });
   }
 }

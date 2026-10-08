@@ -3,7 +3,6 @@ import React from 'react';
 import { prisma } from '@/lib/prisma';
 import { DatePickerFilter } from '@/components/DatePickerFilter';
 
-export const runtime = 'edge';
 
 import { ScreenshotGrid } from '@/components/ScreenshotGrid';
 
