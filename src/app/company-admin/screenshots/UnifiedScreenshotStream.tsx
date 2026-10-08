@@ -15,12 +15,18 @@ interface ScreenshotItem {
 
 export function UnifiedScreenshotStream({ screenshots }: { screenshots: ScreenshotItem[] }) {
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
-  const [loadedImages, setLoadedImages] = useState<Record<string, string>>({});
+  const [unavailableImages, setUnavailableImages] = useState<Record<string, boolean>>({});
+  const [zoom, setZoom] = useState(1);
+
+  const updateZoom = useCallback((amount: number) => {
+    setZoom((current) => Math.max(1, Math.min(4, Math.round((current + amount) * 100) / 100)));
+  }, []);
 
   const handleNext = useCallback((e?: React.MouseEvent | KeyboardEvent) => {
     e?.stopPropagation?.();
     if (currentIndex !== null && currentIndex < screenshots.length - 1) {
       setCurrentIndex(currentIndex + 1);
+      setZoom(1);
     }
   }, [currentIndex, screenshots.length]);
 
@@ -28,6 +34,7 @@ export function UnifiedScreenshotStream({ screenshots }: { screenshots: Screensh
     e?.stopPropagation?.();
     if (currentIndex !== null && currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
+      setZoom(1);
     }
   }, [currentIndex]);
 
@@ -37,47 +44,18 @@ export function UnifiedScreenshotStream({ screenshots }: { screenshots: Screensh
       if (e.key === 'ArrowRight') handleNext(e);
       if (e.key === 'ArrowLeft') handlePrev(e);
       if (e.key === 'Escape') setCurrentIndex(null);
+      if (e.key === '+' || e.key === '=') updateZoom(0.25);
+      if (e.key === '-') updateZoom(-0.25);
+      if (e.key === '0') setZoom(1);
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, handleNext, handlePrev]);
+  }, [currentIndex, handleNext, handlePrev, updateZoom]);
 
   useEffect(() => {
-    let cancelled = false;
-    const objectUrls: string[] = [];
-
-    const loadImages = async () => {
-      const entries = await Promise.all(
-        screenshots.map(async (item) => {
-          try {
-            const res = await fetch(item.imageUrl, { credentials: 'include', cache: 'no-store' });
-            if (!res.ok) return [item.id, item.imageUrl] as const;
-            const blob = await res.blob();
-            if (!blob.type.startsWith('image/')) return [item.id, item.imageUrl] as const;
-            const objectUrl = URL.createObjectURL(blob);
-            objectUrls.push(objectUrl);
-            return [item.id, objectUrl] as const;
-          } catch {
-            return [item.id, item.imageUrl] as const;
-          }
-        })
-      );
-
-      if (!cancelled) {
-        setLoadedImages(Object.fromEntries(entries));
-      }
-    };
-
-    if (screenshots.length > 0) {
-      loadImages();
-    } else {
-      setLoadedImages({});
-    }
-
-    return () => {
-      cancelled = true;
-      objectUrls.forEach((url) => URL.revokeObjectURL(url));
-    };
+    // Let the browser lazily request each thumbnail as it enters the viewport.
+    // This prevents dozens of protected-image requests from firing at once.
+    setUnavailableImages({});
   }, [screenshots]);
 
   if (screenshots.length === 0) {
@@ -105,9 +83,14 @@ export function UnifiedScreenshotStream({ screenshots }: { screenshots: Screensh
               overflow: 'hidden',
               boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
               transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-              cursor: 'pointer',
+              cursor: unavailableImages[item.id] ? 'not-allowed' : 'pointer',
             }}
-            onClick={() => setCurrentIndex(idx)}
+            onClick={() => {
+              if (!unavailableImages[item.id]) {
+                setZoom(1);
+                setCurrentIndex(idx);
+              }
+            }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'translateY(-2px)';
               e.currentTarget.style.boxShadow = '0 6px 12px rgba(0, 0, 0, 0.08)';
@@ -119,9 +102,9 @@ export function UnifiedScreenshotStream({ screenshots }: { screenshots: Screensh
           >
             {/* Image Preview */}
             <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%', backgroundColor: '#0f172a', overflow: 'hidden' }}>
-              <img
+              {!unavailableImages[item.id] && <img
                 loading="lazy"
-                src={loadedImages[item.id] || item.imageUrl}
+                src={item.imageUrl}
                 alt="Screenshot"
                 style={{
                   position: 'absolute',
@@ -131,16 +114,12 @@ export function UnifiedScreenshotStream({ screenshots }: { screenshots: Screensh
                   height: '100%',
                   objectFit: 'cover',
                 }}
-                onError={(e) => {
-                  const img = e.currentTarget;
-                  img.style.display = 'none';
-                  const fallback = img.nextElementSibling as HTMLElement | null;
-                  if (fallback) fallback.style.display = 'flex';
-                }}
-              />
-              <div style={{ display: 'none', position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.8125rem' }}>
+                onError={() => setUnavailableImages((current) => ({ ...current, [item.id]: true }))}
+              />}
+              {unavailableImages[item.id] && <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', gap: '0.3rem', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.8125rem' }}>
                 Preview unavailable
-              </div>
+                <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Unable to load this capture. Refresh to try again.</span>
+              </div>}
               <span
                 style={{
                   position: 'absolute',
@@ -242,6 +221,9 @@ export function UnifiedScreenshotStream({ screenshots }: { screenshots: Screensh
               <span style={{ fontSize: '0.8125rem', color: '#94a3b8' }}>
                 {currentIndex! + 1} of {screenshots.length}
               </span>
+              <button onClick={() => updateZoom(-0.25)} disabled={zoom <= 1} title="Zoom out" aria-label="Zoom out" style={{ background: 'rgba(255, 255, 255, 0.2)', border: 'none', color: 'white', width: '32px', height: '32px', borderRadius: '50%', cursor: zoom <= 1 ? 'not-allowed' : 'pointer', opacity: zoom <= 1 ? 0.45 : 1 }}>-</button>
+              <button onClick={() => setZoom(1)} title="Reset zoom" aria-label="Reset zoom" style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.35)', color: 'white', borderRadius: '5px', padding: '0.35rem 0.45rem', cursor: 'pointer', fontSize: '0.75rem' }}>{Math.round(zoom * 100)}%</button>
+              <button onClick={() => updateZoom(0.25)} disabled={zoom >= 4} title="Zoom in" aria-label="Zoom in" style={{ background: 'rgba(255, 255, 255, 0.2)', border: 'none', color: 'white', width: '32px', height: '32px', borderRadius: '50%', cursor: zoom >= 4 ? 'not-allowed' : 'pointer', opacity: zoom >= 4 ? 0.45 : 1 }}>+</button>
               <button
                 onClick={() => setCurrentIndex(null)}
                 style={{
@@ -313,14 +295,14 @@ export function UnifiedScreenshotStream({ screenshots }: { screenshots: Screensh
           )}
 
           {/* Full Screen Image */}
-          <div style={{ maxWidth: '90vw', maxHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div onWheel={(event) => { event.preventDefault(); updateZoom(event.deltaY < 0 ? 0.25 : -0.25); }} style={{ maxWidth: '90vw', maxHeight: '80vh', display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-start', overflow: 'auto', cursor: zoom > 1 ? 'zoom-out' : 'zoom-in' }}>
             <img
-              src={loadedImages[activeItem.id] || activeItem.imageUrl}
+              src={activeItem.imageUrl}
               alt="Screenshot Full"
               style={{
-                maxWidth: '100%',
-                maxHeight: '80vh',
-                objectFit: 'contain',
+                width: `${zoom * 100}%`,
+                maxWidth: 'none',
+                height: 'auto',
                 borderRadius: '8px',
                 boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
               }}
