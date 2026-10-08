@@ -20,9 +20,8 @@ export default async function CompanyAdminScreenshotsPage({
     where: { companyId: company.companyId, role: 'EMPLOYEE' },
     select: { id: true, name: true, email: true },
     orderBy: { name: 'asc' },
-    take: 200,
+    take: 100,
   });
-  const employeeIds = employees.map((employee) => employee.id);
 
   // Compute date range
   const now = new Date();
@@ -41,11 +40,10 @@ export default async function CompanyAdminScreenshotsPage({
 
   // Build screenshot where clause
   const whereClause: {
-    userId: { in: string[] } | string;
+    user?: { companyId: string; role: string };
+    userId?: string;
     createdAt?: { gte?: Date; lte?: Date };
-  } = {
-    userId: { in: employeeIds },
-  };
+  } = { user: { companyId: company.companyId, role: 'EMPLOYEE' } };
 
   if (fromDate || toDate) {
     whereClause.createdAt = {};
@@ -53,7 +51,7 @@ export default async function CompanyAdminScreenshotsPage({
     if (toDate) whereClause.createdAt.lte = toDate;
   }
 
-  if (selectedUserId && employeeIds.includes(selectedUserId)) {
+  if (selectedUserId && employees.some((employee) => employee.id === selectedUserId)) {
     whereClause.userId = selectedUserId;
   }
 
@@ -69,7 +67,7 @@ export default async function CompanyAdminScreenshotsPage({
       },
     },
     orderBy: { createdAt: 'desc' },
-    take: 100, // Limit to recent 100 for memory safety
+    take: 30, // The client loads a bounded initial feed to protect Worker CPU.
   });
 
   // Fix legacy dummy R2 URLs to use the proxy endpoint dynamically
