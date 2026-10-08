@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { decryptSetting } from '@/lib/secure-settings';
 
 // Edge-compatible email sender using fetch() instead of nodemailer
 // Uses SMTP2GO HTTP API which works in Cloudflare Edge runtime
@@ -15,7 +16,7 @@ async function sendEmailViaApi({
   subject: string;
   html: string;
 }) {
-  const apiKey = process.env.SMTP2GO_API_KEY || process.env.EMAIL_API_KEY || '';
+  const { apiKey } = await getEmailConfig();
 
   // Fallback: if no API key, log and skip (email is non-critical for app function)
   if (!apiKey) {
@@ -43,13 +44,15 @@ async function sendEmailViaApi({
 
 async function getEmailConfig() {
   const settings = await prisma.setting.findMany({
-    where: { key: { in: ['smtp_user', 'smtp_from_name'] } }
+    where: { key: { in: ['smtp_user', 'smtp_from_name', 'smtp2go_api_key'] } }
   });
   const map: Record<string, string> = {};
   settings.forEach((s: { key: string; value: string }) => { map[s.key] = s.value; });
+  const storedApiKey = map.smtp2go_api_key ? await decryptSetting(map.smtp2go_api_key) : '';
   return {
     from: map['smtp_user'] || process.env.SMTP_USER || 'noreply@sigmatrack.app',
     fromName: map['smtp_from_name'] || 'SigmaTrack',
+    apiKey: storedApiKey || process.env.SMTP2GO_API_KEY || process.env.EMAIL_API_KEY || '',
   };
 }
 
@@ -181,6 +184,40 @@ export async function sendPasswordResetEmail({
     return { success: true };
   } catch (error) {
     console.error('Failed to send password reset email:', error);
+    return { success: false, error: String(error) };
+  }
+}
+
+export async function sendPasswordResetLinkEmail({
+  to,
+  employeeName,
+  companyName,
+  resetUrl,
+}: {
+  to: string;
+  employeeName: string;
+  companyName: string;
+  resetUrl: string;
+}) {
+  try {
+    const { from, fromName } = await getEmailConfig();
+    await sendEmailViaApi({
+      to,
+      from,
+      fromName,
+      subject: `Reset your ${companyName} password`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 16px; color: #172033;">
+          <h1 style="font-size: 24px; margin: 0 0 16px;">Reset your password</h1>
+          <p style="line-height: 1.6;">Hi ${employeeName}, we received a request to reset your ${companyName} password.</p>
+          <p style="margin: 28px 0;"><a href="${resetUrl}" style="display: inline-block; background: #2563eb; color: #fff; padding: 12px 20px; border-radius: 8px; font-weight: 700; text-decoration: none;">Reset password</a></p>
+          <p style="line-height: 1.6;">This link expires in 30 minutes and can be used once. If you did not request this change, you can ignore this email.</p>
+        </div>
+      `,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send password reset link:', error);
     return { success: false, error: String(error) };
   }
 }

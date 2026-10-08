@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -13,6 +14,7 @@ export function LoginForm() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,23 +68,58 @@ export function LoginForm() {
           id="email"
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (error) setError('');
+          }}
           placeholder="Enter your email"
+          className={error ? styles.invalidInput : undefined}
           required
         />
       </div>
       <div className={styles.field}>
         <label className={styles.label} htmlFor="password">Password</label>
-        <Input
-          id="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Enter your password"
-          required
-        />
+        <div className={styles.passwordField}>
+          <Input
+            id="password"
+            type={isPasswordVisible ? 'text' : 'password'}
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (error) setError('');
+            }}
+            placeholder="Enter your password"
+            className={`${styles.passwordInput} ${error ? styles.invalidInput : ''}`}
+            required
+          />
+          <button
+            type="button"
+            className={styles.passwordToggle}
+            onClick={() => setIsPasswordVisible((visible) => !visible)}
+            aria-label={isPasswordVisible ? 'Hide password' : 'Show password'}
+            aria-pressed={isPasswordVisible}
+            title={isPasswordVisible ? 'Hide password' : 'Show password'}
+          >
+            {isPasswordVisible ? (
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="m3 3 18 18M10.6 10.7a2 2 0 0 0 2.7 2.7M9.9 4.2A10.8 10.8 0 0 1 12 4c5.5 0 9.4 4.9 10 7.1a.9.9 0 0 1 0 .5 12 12 0 0 1-3 4.5M6.6 6.6A12 12 0 0 0 2 11.1a.9.9 0 0 0 0 .5C2.6 13.8 6.5 18 12 18c1 0 2-.2 2.9-.5" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12Z" />
+                <circle cx="12" cy="12" r="2.7" />
+              </svg>
+            )}
+          </button>
+        </div>
       </div>
-      {error && <p className={styles.error}>{error}</p>}
+      <Link href="/forgot-password" className={styles.forgotPassword}>Forgot password?</Link>
+      {error && (
+        <p className={styles.error} role="alert">
+          <span aria-hidden="true">!</span>
+          {error}
+        </p>
+      )}
       <Button type="submit" disabled={isLoading} className={styles.submitBtn}>
         {isLoading ? 'Signing in...' : 'Sign In'}
       </Button>

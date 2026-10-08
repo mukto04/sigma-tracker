@@ -274,9 +274,9 @@ mod commands {
                     }
                 }
 
-                // Five-minute capture cadence keeps R2 storage and Worker
-                // traffic sustainable for a growing team.
-                if last_screenshot.elapsed() >= Duration::from_secs(5 * 60) {
+                // A two-minute cadence keeps monitoring useful while cutting
+                // screenshot storage and upload load in half versus one minute.
+                if last_screenshot.elapsed() >= Duration::from_secs(2 * 60) {
                     last_screenshot = Instant::now();
                     if let Some(b64) = capture_primary_screen() {
                         let _ = app_handle_clone.emit("screenshot-captured", b64);

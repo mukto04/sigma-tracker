@@ -8,8 +8,15 @@ export const dynamic = 'force-dynamic';
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "SigmaTracker - The Ultimate Productivity Suite",
+  title: "SigmaTracker",
   description: "Employee time tracking, native activity monitoring, and automated screenshots.",
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icon.png', type: 'image/png', sizes: '512x512' },
+    ],
+    apple: [{ url: '/app-icon.png', type: 'image/png', sizes: '512x512' }],
+  },
 };
 
 export default function RootLayout({

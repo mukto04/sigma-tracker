@@ -140,31 +140,37 @@ export function StripeForm({ initialSettings }: { initialSettings: any }) {
 
 export function EmailGatewayForm({ initialSettings }: { initialSettings: any }) {
   const [isPending, startTransition] = useTransition();
-  const [host, setHost] = useState(initialSettings.smtp_host || '');
-  const [port, setPort] = useState(initialSettings.smtp_port || '');
   const [user, setUser] = useState(initialSettings.smtp_user || '');
-  const [pass, setPass] = useState(initialSettings.smtp_pass || '');
+  const [apiKey, setApiKey] = useState('');
+  const [pass, setPass] = useState('');
   const [fromName, setFromName] = useState(initialSettings.smtp_from_name || '');
+  const [message, setMessage] = useState('');
+  const isConfigured = Boolean(initialSettings.smtp2go_api_key_configured);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     startTransition(async () => {
-      await updateSetting('smtp_host', host);
-      await updateSetting('smtp_port', port);
-      await updateSetting('smtp_user', user);
-      await updateSetting('smtp_pass', pass);
-      await updateSetting('smtp_from_name', fromName);
-      alert('Email Gateway settings saved successfully!');
+      const results = await Promise.all([
+        updateSetting('smtp_user', user.trim()),
+        updateSetting('smtp_from_name', fromName.trim()),
+        apiKey.trim() ? updateSetting('smtp2go_api_key', apiKey.trim()) : Promise.resolve({ success: true }),
+      ]);
+      if (results.every((result) => result.success)) {
+        setApiKey('');
+        setMessage('Email gateway saved.');
+      } else {
+        setMessage('Unable to save email gateway settings.');
+      }
     });
   };
 
   return (
     <form onSubmit={handleSubmit} style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <div style={{ display: 'flex', gap: '1rem' }}>
-        <DarkInput label="SMTP Host" value={host} onChange={(e:any) => setHost(e.target.value)} placeholder="smtp.gmail.com" />
-        <DarkInput label="SMTP Port" value={port} onChange={(e:any) => setPort(e.target.value)} placeholder="587" />
+        <DarkInput label="Sender Email" type="email" value={user} onChange={(e:any) => setUser(e.target.value)} placeholder="hello@yourdomain.com" />
+        <DarkInput label={isConfigured ? "SMTP2GO API Key (configured)" : "SMTP2GO API Key"} type="password" value={apiKey} onChange={(e:any) => setApiKey(e.target.value)} placeholder={isConfigured ? "Leave blank to keep current key" : "Enter API key"} />
       </div>
-      <div style={{ display: 'flex', gap: '1rem' }}>
+      <div style={{ display: 'none' }}>
         <DarkInput label="SMTP User / Email" value={user} onChange={(e:any) => setUser(e.target.value)} placeholder="hello@sigma.com" />
         <DarkInput label="SMTP Password" type="password" value={pass} onChange={(e:any) => setPass(e.target.value)} placeholder="••••••••" />
       </div>

@@ -121,7 +121,7 @@ export default async function EmployeesPage() {
               </tr>
             </thead>
             <tbody>
-              {employees.map(user => (
+               {employees.map((user: { id: string; name: string | null; email: string; role: string; createdAt: Date }) => (
                 <tr key={user.id}>
                   <td style={styles.td}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>

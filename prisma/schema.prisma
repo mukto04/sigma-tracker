@@ -43,6 +43,7 @@ model User {
   timeEntries TimeEntry[]
   screenshots Screenshot[]
   activities  ActivityLog[]
+  passwordResetTokens PasswordResetToken[]
 
   @@index([companyId, role])
 }
@@ -102,4 +103,16 @@ model ActivityLog {
 model Setting {
   key   String @id
   value String
+}
+
+model PasswordResetToken {
+  id        String   @id
+  userId    String
+  tokenHash String   @unique
+  expiresAt BigInt
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
