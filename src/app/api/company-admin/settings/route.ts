@@ -8,7 +8,8 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   const admin = await requireAdminCompany('/company-admin/settings');
 
-  const company = await prisma.company.findUnique({
+  const [company, stripeSetting] = await Promise.all([
+    prisma.company.findUnique({
     where: { id: admin.companyId },
     select: {
       id: true,
@@ -45,11 +46,14 @@ export async function GET() {
         select: { id: true, name: true, description: true },
       },
     },
-  });
+    }),
+    prisma.setting.findUnique({ where: { key: 'stripe_secret_key' } }),
+  ]);
 
   return NextResponse.json(
     {
       userId: admin.userId,
+      billing: { stripeConfigured: Boolean(stripeSetting?.value) },
       company: company || {
         id: admin.companyId,
         logoUrl: null,
