@@ -12,23 +12,29 @@ export default function CreateCompanyForm() {
     adminName: '', 
     adminEmail: '', 
     adminPassword: '',
-    employeeCount: 1,
-    validityDays: 30
+    employeeCount: '1',
+    validityDays: '30'
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const employeeCount = Number(form.employeeCount);
+    const validityDays = Number(form.validityDays);
+    if (!Number.isInteger(employeeCount) || employeeCount < 1 || !Number.isInteger(validityDays) || validityDays < 1) {
+      alert('Employee count and validity must both be at least 1.');
+      return;
+    }
     startTransition(async () => {
       const res = await createCompanyManually(
         form.companyName, 
         form.adminEmail, 
         form.adminName, 
         form.adminPassword,
-        form.employeeCount,
-        form.validityDays
+        employeeCount,
+        validityDays
       );
       if (res.success) {
-        setForm({ companyName: '', adminName: '', adminEmail: '', adminPassword: '', employeeCount: 1, validityDays: 30 });
+        setForm({ companyName: '', adminName: '', adminEmail: '', adminPassword: '', employeeCount: '1', validityDays: '30' });
         alert('Company & Admin created successfully!');
       } else {
         alert(res.error);
@@ -86,7 +92,7 @@ export default function CreateCompanyForm() {
             type="number"
             min="1"
             value={form.employeeCount} 
-            onChange={e => setForm({...form, employeeCount: parseInt(e.target.value) || 1})} 
+            onChange={e => setForm({...form, employeeCount: e.target.value})} 
             required 
             style={{ padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #334155', backgroundColor: '#1e293b', color: '#f8fafc', outline: 'none' }}
           />
@@ -97,7 +103,7 @@ export default function CreateCompanyForm() {
             type="number"
             min="1"
             value={form.validityDays} 
-            onChange={e => setForm({...form, validityDays: parseInt(e.target.value) || 30})} 
+            onChange={e => setForm({...form, validityDays: e.target.value})} 
             required 
             style={{ padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #334155', backgroundColor: '#1e293b', color: '#f8fafc', outline: 'none' }}
           />
