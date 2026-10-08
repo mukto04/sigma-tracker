@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && prisma db push && next build",
-    "pages:build": "npx @cloudflare/next-on-pages@1",
     "start": "next start",
     "lint": "eslint",
     "electron:dev": "concurrently -k \"cross-env BROWSER=none npm run dev\" \"wait-on http://localhost:3000 && cross-env NODE_ENV=development electron .\"",
@@ -28,8 +27,6 @@
     "stripe": "^22.6.1"
   },
   "devDependencies": {
-    "@cloudflare/next-on-pages": "^1.13.16",
-    "@prisma/adapter-d1": "^5.22.0",
     "@tauri-apps/cli": "^2.11.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
@@ -38,8 +35,7 @@
     "eslint": "^9",
     "eslint-config-next": "^14.2.15",
     "prisma": "^5.22.0",
-    "typescript": "^5",
-    "wrangler": "^4.129.0"
+    "typescript": "^5"
   },
   "build": {
     "appId": "com.sigmatracker.app",

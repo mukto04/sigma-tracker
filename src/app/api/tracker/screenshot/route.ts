@@ -45,7 +45,7 @@ export async function POST(req: Request) {
       },
     });
 
-    await pruneOldScreenshots(undefined, userId);
+    await pruneOldScreenshots(userId);
 
     return NextResponse.json({ success: true, screenshot });
   } catch (error) {

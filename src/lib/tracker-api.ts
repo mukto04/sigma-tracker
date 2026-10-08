@@ -1,30 +1,13 @@
 import { NextResponse } from 'next/server';
 import { SESSION_COOKIE, verifySessionToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { deleteScreenshotFile } from '@/lib/storage';
 
 export const MAX_SCREENSHOT_BYTES = 450 * 1024;
 export const MAX_SCREENSHOT_REQUEST_BYTES = 650 * 1024;
 export const SCREENSHOT_RETENTION_DAYS = 14;
 const screenshotPruneSchedule = new Map<string, number>();
 const SCREENSHOT_PRUNE_INTERVAL_MS = 6 * 60 * 60 * 1000;
-
-type R2BucketLike = {
-  put(
-    key: string,
-    value: ArrayBuffer,
-    options?: { httpMetadata?: { contentType?: string } }
-  ): Promise<unknown>;
-  get(key: string): Promise<{
-    body: BodyInit | null;
-    httpEtag: string;
-    writeHttpMetadata(headers: Headers): void;
-  } | null>;
-  delete(key: string): Promise<unknown>;
-};
-
-export type TrackerEnv = {
-  R2?: R2BucketLike;
-};
 
 function getCookieValue(cookieHeader: string | null, name: string) {
   if (!cookieHeader) return null;
@@ -99,7 +82,7 @@ export function decodeDataImage(dataUrl: string) {
   return { bytes, extension, contentType };
 }
 
-export function getR2KeyFromImageUrl(imageUrl: string) {
+export function getScreenshotKeyFromImageUrl(imageUrl: string) {
   try {
     const url = new URL(imageUrl, 'https://tracker.local');
     const file = url.searchParams.get('file');
@@ -111,12 +94,11 @@ export function getR2KeyFromImageUrl(imageUrl: string) {
   return idx >= 0 ? imageUrl.slice(idx) : null;
 }
 
-export async function pruneOldScreenshots(env: TrackerEnv | undefined, userId: string) {
+export async function pruneOldScreenshots(userId: string) {
   const now = Date.now();
   const lastPrunedAt = screenshotPruneSchedule.get(userId) ?? 0;
   if (now - lastPrunedAt < SCREENSHOT_PRUNE_INTERVAL_MS) return;
 
-  // Avoid a D1 query plus R2 delete batch for every captured image.
   screenshotPruneSchedule.set(userId, now);
   const cutoff = new Date(Date.now() - SCREENSHOT_RETENTION_DAYS * 24 * 60 * 60 * 1000);
   const oldScreenshots = await prisma.screenshot.findMany({
@@ -129,8 +111,8 @@ export async function pruneOldScreenshots(env: TrackerEnv | undefined, userId: s
 
   await Promise.allSettled(
     oldScreenshots.map(async (screenshot: { id: string; imageUrl: string }) => {
-      const key = getR2KeyFromImageUrl(screenshot.imageUrl);
-      if (key && env?.R2) await env.R2.delete(key);
+      const key = getScreenshotKeyFromImageUrl(screenshot.imageUrl);
+      if (key) await deleteScreenshotFile(key);
     })
   );
 
