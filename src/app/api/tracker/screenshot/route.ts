@@ -1,12 +1,17 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getRequestContext } from '@cloudflare/next-on-pages';
-import { decodeDataImage, parseOfflineDate, pruneOldScreenshots, requireTrackerUser, type TrackerEnv } from '@/lib/tracker-api';
+import { decodeDataImage, MAX_SCREENSHOT_REQUEST_BYTES, parseOfflineDate, pruneOldScreenshots, requireTrackerUser, type TrackerEnv } from '@/lib/tracker-api';
 
 export const runtime = 'edge';
 
 export async function POST(req: Request) {
   try {
+    const contentLength = Number(req.headers.get('content-length'));
+    if (Number.isFinite(contentLength) && contentLength > MAX_SCREENSHOT_REQUEST_BYTES) {
+      return NextResponse.json({ error: 'Screenshot payload is too large' }, { status: 413 });
+    }
+
     const body = await req.json() as {
       userId?: string;
       imageUrl?: string;

@@ -274,8 +274,9 @@ mod commands {
                     }
                 }
 
-                // Periodic screenshot every 60 seconds
-                if last_screenshot.elapsed() >= Duration::from_secs(60) {
+                // Five-minute capture cadence keeps R2 storage and Worker
+                // traffic sustainable for a growing team.
+                if last_screenshot.elapsed() >= Duration::from_secs(5 * 60) {
                     last_screenshot = Instant::now();
                     if let Some(b64) = capture_primary_screen() {
                         let _ = app_handle_clone.emit("screenshot-captured", b64);

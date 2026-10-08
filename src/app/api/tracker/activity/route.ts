@@ -6,6 +6,11 @@ export const runtime = 'edge';
 
 export async function POST(req: Request) {
   try {
+    const contentLength = Number(req.headers.get('content-length'));
+    if (Number.isFinite(contentLength) && contentLength > 12 * 1024) {
+      return NextResponse.json({ error: 'Activity payload is too large' }, { status: 413 });
+    }
+
     const body = await req.json() as {
       userId?: string;
       productivityScore?: number;

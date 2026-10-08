@@ -3,6 +3,7 @@ import { SESSION_COOKIE, verifySessionToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export const MAX_SCREENSHOT_BYTES = 450 * 1024;
+export const MAX_SCREENSHOT_REQUEST_BYTES = 650 * 1024;
 export const SCREENSHOT_RETENTION_DAYS = 14;
 const screenshotPruneSchedule = new Map<string, number>();
 const SCREENSHOT_PRUNE_INTERVAL_MS = 6 * 60 * 60 * 1000;
@@ -127,13 +128,13 @@ export async function pruneOldScreenshots(env: TrackerEnv, userId: string) {
   if (oldScreenshots.length === 0) return;
 
   await Promise.allSettled(
-    oldScreenshots.map(async (screenshot) => {
+    oldScreenshots.map(async (screenshot: { id: string; imageUrl: string }) => {
       const key = getR2KeyFromImageUrl(screenshot.imageUrl);
       if (key && env?.R2) await env.R2.delete(key);
     })
   );
 
   await prisma.screenshot.deleteMany({
-    where: { id: { in: oldScreenshots.map((s) => s.id) } },
+    where: { id: { in: oldScreenshots.map((s: { id: string; imageUrl: string }) => s.id) } },
   });
 }
