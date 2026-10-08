@@ -92,7 +92,7 @@ export default function CreateCompanyForm() {
             type="number"
             min="1"
             value={form.employeeCount} 
-            onChange={e => setForm({...form, employeeCount: e.target.value})} 
+            onChange={e => setForm({...form, employeeCount: e.target.value})}
             required 
             style={{ padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #334155', backgroundColor: '#1e293b', color: '#f8fafc', outline: 'none' }}
           />
@@ -103,7 +103,7 @@ export default function CreateCompanyForm() {
             type="number"
             min="1"
             value={form.validityDays} 
-            onChange={e => setForm({...form, validityDays: e.target.value})} 
+            onChange={e => setForm({...form, validityDays: e.target.value})}
             required 
             style={{ padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #334155', backgroundColor: '#1e293b', color: '#f8fafc', outline: 'none' }}
           />
