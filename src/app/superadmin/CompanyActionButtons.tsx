@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useTransition } from 'react';
-import { softDeleteCompany, restoreCompany, editCompany } from './actions';
+import { softDeleteCompany, restoreCompany, editCompany, recordManualPayment } from './actions';
 import { Button } from '@/components/ui/Button';
 
 type CompanyActionModel = {
@@ -31,6 +31,7 @@ export default function CompanyActionButtons({ company }: { company: CompanyActi
   });
 
   const isDeleted = company.subscriptionStatus === 'Deleted';
+  const hasPendingPayment = company.subscriptionStatus === 'Payment Pending';
 
   const handleDelete = () => {
     if (!confirm(`Are you sure you want to move ${company.name} to the Trash Bin?`)) return;
@@ -42,6 +43,14 @@ export default function CompanyActionButtons({ company }: { company: CompanyActi
   const handleRestore = () => {
     startTransition(async () => {
       await restoreCompany(company.id);
+    });
+  };
+
+  const handleManualPayment = () => {
+    if (!confirm(`Record manual payment for ${company.name}? This will activate the subscription.`)) return;
+    startTransition(async () => {
+      const result = await recordManualPayment(company.id);
+      if (!result.success) alert(result.error || 'Unable to record manual payment.');
     });
   };
 
@@ -84,6 +93,7 @@ export default function CompanyActionButtons({ company }: { company: CompanyActi
         </div>
       ) : (
         <div style={{ display: 'flex', gap: '0.5rem' }}>
+          {hasPendingPayment && <button style={{ ...actionBtnStyle, fontSize: '0.78rem', background: '#16a34a', color: 'white', padding: '0.4rem 0.55rem', borderRadius: '6px', fontWeight: 700 }} onClick={handleManualPayment} disabled={isPending} title="Record manual payment">Record Payment</button>}
           <button style={actionBtnStyle} onClick={() => setEditModalOpen(true)} disabled={isPending} title="Edit">
             ✏️
           </button>

@@ -124,6 +124,36 @@ export async function createCompanyManually(
   }
 }
 
+export async function recordManualPayment(companyId: string) {
+  try {
+    const unauthorized = await ensureSuperadmin();
+    if (unauthorized) return unauthorized;
+
+    const subscription = await prisma.subscription.findFirst({
+      where: { companyId, status: { in: ['Payment Pending', 'Past Due'] } },
+      include: { payments: { where: { status: 'Pending' }, orderBy: { createdAt: 'asc' }, take: 1 } },
+      orderBy: { createdAt: 'desc' },
+    });
+    const payment = subscription?.payments[0];
+    if (!subscription || !payment) return { success: false, error: 'No pending payment was found.' };
+
+    const now = new Date();
+    const nextRenewal = new Date(now);
+    nextRenewal.setMonth(nextRenewal.getMonth() + 1);
+    await prisma.payment.update({ where: { id: payment.id }, data: { status: 'Paid', paidAt: now, description: `${payment.description} - Manual payment received` } });
+    await prisma.subscription.update({ where: { id: subscription.id }, data: { status: 'Active', startedAt: now, currentPeriodEnd: nextRenewal } });
+    await prisma.company.update({ where: { id: companyId }, data: { subscriptionStatus: 'Active', purchaseDate: now, renewalDate: nextRenewal } });
+
+    revalidatePath('/superadmin');
+    revalidatePath('/company-admin/subscriptions');
+    revalidatePath('/company-admin/settings');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to record manual payment:', error);
+    return { success: false, error: 'Unable to record manual payment.' };
+  }
+}
+
 export async function softDeleteCompany(companyId: string) {
   try {
     const unauthorized = await ensureSuperadmin();
