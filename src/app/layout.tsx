@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { BrowserAlertBridge } from '@/components/ui/BrowserAlertBridge';
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
@@ -29,6 +30,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <div style={{ minHeight: '100vh' }}>
           {children}
+          <BrowserAlertBridge />
         </div>
       </body>
     </html>

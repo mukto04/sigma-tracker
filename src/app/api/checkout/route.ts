@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getStripeSecretKey, isStripeConfigured } from '@/lib/stripe-settings';
 
 export const runtime = 'edge';
 
@@ -17,9 +18,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Company name and email are required' }, { status: 400 });
     }
 
-    const stripeKey = process.env.STRIPE_SECRET_KEY;
-    if (!stripeKey || stripeKey.includes('12345')) {
-      return NextResponse.json({ error: 'Stripe is not configured yet' }, { status: 503 });
+    const stripeKey = await getStripeSecretKey();
+    if (!isStripeConfigured(stripeKey)) {
+      return NextResponse.json({ error: 'Online payments are not available yet. Please contact SigmaTracker support.' }, { status: 503 });
     }
 
     const origin = new URL(req.url).origin;
