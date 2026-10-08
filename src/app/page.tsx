@@ -5,6 +5,7 @@ import { PricingForm } from './PricingForm';
 import Link from 'next/link';
 import Image from 'next/image';
 import LandingPage from './LandingPage';
+import PremiumLanding from './PremiumLanding';
 
 function LegacyHome() {
   return (
@@ -179,5 +180,5 @@ function LegacyHome() {
 }
 
 export default function Home() {
-  return <LandingPage />;
+  return <PremiumLanding />;
 }

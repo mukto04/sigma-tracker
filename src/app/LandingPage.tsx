@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { PricingForm } from './PricingForm';
 import styles from './landing.module.css';
+import motion from './landing-motion.module.css';
 
 const features = [
   ['Live visibility', 'One calm console for time, activity, screenshots, and application usage.'],
@@ -13,7 +14,7 @@ const features = [
 ];
 
 export default function LandingPage() {
-  return <main className={styles.main}>
+  return <main className={`${styles.main} ${motion.motion}`}>
     <header className={styles.header}>
       <Link href="/" aria-label="SigmaTracker home"><Image src="/logo.png" alt="SigmaTracker" width={172} height={40} priority /></Link>
       <nav><a href="#product">Product</a><a href="#workflow">Workflow</a><a href="#pricing">Pricing</a></nav>
@@ -39,6 +40,6 @@ export default function LandingPage() {
 }
 
 function ProductPreview() {
-  return <div className={styles.product}><div className={styles.window}><span><Image src="/app-icon.png" alt="" width={18} height={18}/> SigmaTracker</span><em>--</em></div><div className={styles.productBody}><aside><b>S</b><span className={styles.active}>Overview</span><span>Timesheets</span><span>Screenshots</span><span>App usage</span><span>Reports</span></aside><div className={styles.dashboard}><div className={styles.dashboardTop}><div><b>Good morning, Arefin</b><small>October 08, 2026</small></div><span>Live tracking</span></div><div className={styles.metrics}><Metric label="TIME LOGGED" value="06:42:18" note="+12% this week"/><Metric label="AVG. ACTIVITY" value="84%" note="Healthy focus"/></div><div className={styles.chart}><b>Team activity</b><div>{[35,55,48,78,65,91,74,86,60,70].map((height, index) => <i key={index} style={{height: `${height}%`}}/>)}</div></div><div className={styles.pulse}><b>Team pulse</b><p><span>MA</span>Mukto Arefin <em>92%</em></p><p><span>SR</span>Sarah Rahman <em>86%</em></p><p><span>TK</span>Tanvir Khan <em>78%</em></p></div></div></div></div>;
+  return <div className={styles.product}><div className={styles.window}><span><Image src="/app-icon.png" alt="" width={18} height={18}/> SigmaTracker</span><em>--</em></div><div className={styles.productBody}><aside><b>S</b><span className={styles.active}>Overview</span><span>Timesheets</span><span>Screenshots</span><span>App usage</span><span>Reports</span></aside><div className={styles.dashboard}><div className={styles.dashboardTop}><div><b>Good morning, Team</b><small>Workspace overview</small></div><span>Live tracking</span></div><div className={styles.metrics}><Metric label="TIME LOGGED" value="06:42:18" note="+12% this week"/><Metric label="AVG. ACTIVITY" value="84%" note="Healthy focus"/></div><div className={styles.chart}><b>Team activity</b><div>{[35,55,48,78,65,91,74,86,60,70].map((height, index) => <i key={index} style={{height: `${height}%`}}/>)}</div></div><div className={styles.pulse}><b>AM</b><p><span>AM</span>Alex Morgan <em>92%</em></p><p><span>RW</span>Riley Wong <em>86%</em></p><p><span>JS</span>Jordan Smith <em>78%</em></p></div></div></div></div>;
 }
 function Metric({ label, value, note }: {label:string;value:string;note:string}) { return <div><small>{label}</small><strong>{value}</strong><em>{note}</em></div>; }
